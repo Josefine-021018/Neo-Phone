@@ -4,9 +4,9 @@ let currentChatId = null;
 let currentMessageSelection = [];
 let isSelectionMode = false;
 let apiConfig = {
-  proxyUrl: '',
+  proxyUrl: '', // 注意：此字段现在被用作 Minimax Group ID
   apiKey: '',
-  model: 'gpt-3.5-turbo',
+  model: 'abab5.5-chat', // 默认模型
   temperature: 0.8,
   enableBackgroundActivity: false,
   backgroundInterval: 60,
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(updateTime, 60000); // 每分钟更新一次时间
 });
 
-// iOS全屏适配初始化
+// iOS全屏适配初始化 (已修改：修复滑动问题)
 function initIOSFullscreen() {
   // 检测iOS设备
   if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
@@ -101,13 +101,21 @@ function initIOSFullscreen() {
       }
     });
     
-    // 处理iOS橡皮筋效果（弹性滚动）
+    // ============================================================
+    // 【关键修复】处理iOS橡皮筋效果（弹性滚动）
+    // 修改逻辑：检查元素本身或其父级是否有 data-scrollable="true"
+    // ============================================================
     document.addEventListener('touchmove', function(event) {
       const target = event.target;
-      const isScrollable = target.closest('.screen, #main-content-area, #chat-list, #chat-messages, #world-book-content-container');
+      // 检查当前触摸目标是否在“允许滚动”的容器内
+      const scrollable = target.closest('[data-scrollable="true"]');
       
-      if (!isScrollable && target === document.body) {
+      if (!scrollable && target === document.body) {
+        // 如果不在可滚动区域内，阻止默认拖动（防止整个网页被拖动）
         event.preventDefault();
+      } else {
+        // 如果在可滚动区域内，允许由于冒泡产生的滚动，但要防止 body 滚动
+        event.stopPropagation(); 
       }
     }, { passive: false });
     
@@ -640,10 +648,8 @@ async function sendMessage() {
   // 显示AI回复指示器
   showTypingIndicator();
   
-  // 发送到AI（这里需要调用AI API）
-  setTimeout(async () => {
-    await generateAIResponse(message);
-  }, 1000);
+  // 发送到AI
+  await generateAIResponse(message);
 }
 
 // 显示打字指示器
@@ -668,48 +674,149 @@ function hideTypingIndicator() {
   }
 }
 
-// 生成AI回复
+// ============================================================
+// 【关键修改】真实 API 调用函数 (替换了原有的假回复逻辑)
+// ============================================================
 async function generateAIResponse(userMessage) {
   hideTypingIndicator();
-  
-  // 这里应该调用AI API
-  // 暂时模拟回复
-  const responses = [
-    "我明白了，这很有趣！",
-    "谢谢分享你的想法。",
-    "这是一个很好的观点。",
-    "能告诉我更多细节吗？",
-    "我理解你的意思。",
-    "这听起来很有道理。"
-  ];
-  
-  const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-  
-  // 保存AI回复
-  const aiMessage = {
-    chatId: currentChatId,
-    sender: 'ai',
-    content: randomResponse,
-    timestamp: Date.now(),
-    type: 'text',
-    isRead: false
-  };
-  
-  await db.messages.add(aiMessage);
-  
-  // 更新聊天最后消息
-  await db.chats.update(currentChatId, {
-    lastMessage: randomResponse,
-    timestamp: Date.now()
-  });
-  
-  // 重新加载消息
-  await loadChatMessages(currentChatId);
-  
-  // 如果有通知声音，播放
-  if (userSettings.notificationSound) {
-    playNotificationSound();
+
+  // 1. 检查 API Key 是否存在
+  if (!apiConfig.apiKey) {
+    const errorMsg = "⚠️ 请先点击主页[设置]图标，填写 Minimax API Key 和 Group ID 后再使用。";
+    await db.messages.add({
+      chatId: currentChatId,
+      sender: 'ai',
+      content: errorMsg,
+      timestamp: Date.now(),
+      type: 'text',
+      isRead: false
+    });
+    await loadChatMessages(currentChatId);
+    return;
   }
+
+  // 2. 准备参数
+  // 约定：apiConfig.proxyUrl 字段存储的是 Minimax 的 Group ID
+  const groupId = apiConfig.proxyUrl; 
+  if (!groupId) {
+    const errorMsg = "⚠️ Group ID 为空，请在设置中的[Group ID]栏填写。";
+    await db.messages.add({
+      chatId: currentChatId,
+      sender: 'ai',
+      content: errorMsg,
+      timestamp: Date.now(),
+      type: 'text',
+      isRead: false
+    });
+    await loadChatMessages(currentChatId);
+    return;
+  }
+
+  // Minimax API 地址
+  const url = `https://api.minimax.chat/v1/text/chatcompletion_pro?GroupId=${groupId}`;
+
+  try {
+    // 3. 发送 Fetch 请求
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiConfig.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: apiConfig.model || "abab5.5-chat",
+        messages: [
+          { sender_type: "USER", sender_name: "用户", text: userMessage }
+        ],
+        bot_setting: [
+          {
+            bot_name: "智能助手",
+            content: "你是一个智能手机助手，回复请简短自然，像朋友一样聊天。"
+          }
+        ],
+        reply_constraints: { sender_type: "BOT", sender_name: "智能助手" }
+      })
+    });
+
+    const data = await response.json();
+    
+    // 4. 解析回复
+    let aiText = "AI 无回复";
+    if (data.reply) {
+        aiText = data.reply;
+    } else if (data.choices && data.choices.length > 0) {
+        aiText = data.choices[0].messages[0].text;
+    } else if (data.base_resp && data.base_resp.status_code !== 0) {
+        aiText = `API Error: ${data.base_resp.status_msg}`;
+    }
+
+    // 5. 保存 AI 回复到数据库
+    const aiMessage = {
+      chatId: currentChatId,
+      sender: 'ai',
+      content: aiText,
+      timestamp: Date.now(),
+      type: 'text',
+      isRead: false
+    };
+
+    await db.messages.add(aiMessage);
+    await db.chats.update(currentChatId, {
+      lastMessage: aiText,
+      timestamp: Date.now()
+    });
+    await loadChatMessages(currentChatId);
+    
+    // 播放提示音
+    if (userSettings.notificationSound) playNotificationSound();
+
+    // 6. 触发语音朗读 (TTS)
+    playTTS(aiText, groupId, apiConfig.apiKey);
+
+  } catch (error) {
+    console.error("API请求失败", error);
+    await db.messages.add({
+      chatId: currentChatId,
+      sender: 'ai',
+      content: `网络请求失败: ${error.message} (请检查跨域设置或网络连接)`,
+      timestamp: Date.now(),
+      type: 'text',
+      isRead: true
+    });
+    await loadChatMessages(currentChatId);
+  }
+}
+
+// ============================================================
+// 【新增】TTS 语音播放函数
+// ============================================================
+async function playTTS(text, groupId, apiKey) {
+    try {
+        const res = await fetch(`https://api.minimax.chat/v1/text_to_speech?GroupId=${groupId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                voice_id: "male-qn-qingse", // 默认音色，可改为其他ID
+                text: text,
+                model: "speech-01"
+            })
+        });
+        
+        if (!res.ok) throw new Error("TTS请求失败");
+
+        const blob = await res.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = document.getElementById('tts-audio-player');
+        if (audio) {
+            audio.src = audioUrl;
+            audio.play().catch(e => console.log("播放失败(需用户交互):", e));
+        }
+    } catch (e) {
+        console.error("TTS失败", e);
+    }
 }
 
 // 播放通知声音
