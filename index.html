@@ -1,955 +1,3110 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>我的手机</title>
-  <link rel="stylesheet" href="NeoStyle.CSS">
-  <link rel="apple-touch-icon" href="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1758510900942_qdqqd_djw0z2.jpeg">
-  <link rel="manifest" href="manifest.json">
-  
-  <!-- iOS PWA 设置 -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="我的手机">
-  <meta name="apple-mobile-web-app-orientations" content="portrait">
-  <meta name="format-detection" content="telephone=no, email=no">
-  <meta name="theme-color" content="#ffffff">
-  <meta name="mobile-web-app-capable" content="yes">
-  
-  <!-- iOS 状态栏样式 -->
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  
-  <link rel="icon" type="image/png" href="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1756312261242_qdqqd_g0eriz.jpeg">
-  
-  <!-- 脚本 -->
-  <script src="https://unpkg.com/dexie/dist/dexie.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/StreamSaver.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js" defer></script>
-  <script src="Neoscript.js" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>智能手机模拟器</title>
+    <style>
+        :root {
+            --primary: #007aff;
+            --secondary: #5856d6;
+            --success: #34c759;
+            --warning: #ff9500;
+            --danger: #ff3b30;
+            --bg: #f2f2f7;
+            --card: #ffffff;
+            --text: #000000;
+            --text-secondary: #8e8e93;
+            --border: #c7c7cc;
+            --radius: 12px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --dark-bg: #000000;
+            --dark-card: #1c1c1e;
+            --dark-text: #ffffff;
+            --dark-border: #38383a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        /* 手机容器 - 全屏无边框 */
+        .phone {
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease;
+        }
+
+        /* 暗色模式 */
+        .phone.dark-mode {
+            --bg: var(--dark-bg);
+            --card: var(--dark-card);
+            --text: var(--dark-text);
+            --text-secondary: #8e8e93;
+            --border: var(--dark-border);
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            height: 44px;
+            background: rgba(0,0,0,0.95);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .dark-mode .status-bar {
+            background: rgba(28,28,30,0.95);
+        }
+
+        .battery {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .battery-level {
+            width: 24px;
+            height: 12px;
+            border: 1px solid white;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .battery-level::after {
+            content: '';
+            position: absolute;
+            right: -3px;
+            top: 3px;
+            width: 2px;
+            height: 6px;
+            background: white;
+        }
+
+        .battery-fill {
+            height: 100%;
+            width: 80%;
+            background: white;
+            border-radius: 1px;
+            transition: width 0.3s ease;
+        }
+
+        /* 所有屏幕的通用样式 */
+        .screen {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screen.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* 屏幕头部通用样式 */
+        .screen-header {
+            padding: 15px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        .back-btn {
+            font-size: 24px;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 8px;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .screen-title {
+            flex: 1;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* 主屏幕 */
+        .home-screen {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            background: var(--bg);
+            position: relative;
+        }
+
+        /* 应用网格 - 修复滑动问题 */
+        .app-grid {
+            padding: 25px 20px 100px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            height: 100%;
+            flex: 1;
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            min-height: 80px;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .app:active {
+            transform: scale(0.95);
+        }
+
+        .app-icon {
+            width: 65px;
+            height: 65px;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            box-shadow: var(--shadow);
+            pointer-events: none;
+        }
+
+        .app-name {
+            font-size: 12px;
+            color: var(--text);
+            text-align: center;
+            font-weight: 500;
+            pointer-events: none;
+        }
+
+        /* 聊天界面 */
+        .chat-header {
+            padding: 10px 15px;
+        }
+
+        .chat-title {
+            font-size: 18px;
+        }
+
+        .chat-status {
+            font-size: 12px;
+            color: var(--success);
+        }
+
+        .messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 15px;
+            border-radius: 18px;
+            line-height: 1.4;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.received {
+            background: var(--card);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: var(--shadow);
+        }
+
+        .message.sent {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            box-shadow: var(--shadow);
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .input-area {
+            padding: 15px;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 16px;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-appearance: none;
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        /* 购物界面 */
+        .shop-header {
+            padding: 15px;
+        }
+
+        .cart-btn {
+            position: relative;
+            cursor: pointer;
+            padding: 10px;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .products {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .product {
+            background: var(--card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .product:active {
+            transform: scale(0.98);
+        }
+
+        .product-img {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 40px;
+        }
+
+        .product-info {
+            padding: 12px;
+        }
+
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .product-price {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .add-to-cart {
+            margin-top: 10px;
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            min-height: 44px;
+        }
+
+        /* 记账界面 */
+        .account-header {
+            padding: 20px 15px;
+            background: var(--primary);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .balance {
+            font-size: 36px;
+            font-weight: 300;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-align: center;
+        }
+
+        .account-actions {
+            padding: 15px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--bg);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            min-height: 44px;
+        }
+
+        .action-btn:active {
+            background: var(--border);
+        }
+
+        .action-btn.income {
+            color: var(--success);
+        }
+
+        .action-btn.expense {
+            color: var(--danger);
+        }
+
+        .transactions {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .transaction {
+            background: var(--card);
+            padding: 12px;
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .transaction-info h4 {
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+
+        .transaction-info span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .transaction-amount {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .transaction-amount.income {
+            color: var(--success);
+        }
+
+        .transaction-amount.expense {
+            color: var(--danger);
+        }
+
+        /* 世界书界面 */
+        .book-header {
+            padding: 15px;
+        }
+
+        .add-book-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .books-list {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .book-item {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 15px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .book-item:active {
+            transform: scale(0.98);
+        }
+
+        .book-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .book-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 16px;
+            color: var(--text);
+        }
+
+        .book-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* 设置界面 */
+        .settings-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 80px;
+        }
+
+        .settings-section {
+            background: var(--card);
+            margin: 15px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .settings-section-title {
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.02);
+        }
+
+        .dark-mode .settings-section-title {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .settings-item {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item:active {
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        .dark-mode .settings-item:active {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .settings-item-label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .settings-item-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .settings-item-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .settings-item-value {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-left: 10px;
+        }
+
+        .settings-input {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .settings-select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .settings-textarea {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            width: 100%;
+            margin-top: 8px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .settings-toggle {
+            position: relative;
+            width: 52px;
+            height: 32px;
+        }
+
+        .settings-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .settings-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .settings-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider {
+            background-color: var(--primary);
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .settings-button {
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .settings-button:active {
+            opacity: 0.8;
+        }
+
+        .settings-button.secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .settings-button.danger {
+            background: var(--danger);
+        }
+
+        .settings-button.success {
+            background: var(--success);
+        }
+
+        .settings-button.warning {
+            background: var(--warning);
+        }
+
+        .settings-subsection {
+            padding: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .settings-row .settings-button {
+            flex: 1;
+            margin-top: 0;
+        }
+
+        .api-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .api-status.connected {
+            background-color: var(--success);
+        }
+
+        .api-status.disconnected {
+            background-color: var(--danger);
+        }
+
+        .api-status.connecting {
+            background-color: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+
+        .voice-preview {
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .voice-preview:active {
+            opacity: 0.8;
+        }
+
+        .image-preview {
+            width: 100%;
+            height: 150px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .backup-status {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-left: 10px;
+        }
+
+        .backup-status.success {
+            background: rgba(52, 199, 89, 0.2);
+            color: var(--success);
+        }
+
+        .backup-status.warning {
+            background: rgba(255, 149, 0, 0.2);
+            color: var(--warning);
+        }
+
+        .backup-status.error {
+            background: rgba(255, 59, 48, 0.2);
+            color: var(--danger);
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 15px;
+            box-shadow: var(--shadow);
+            z-index: 100;
+        }
+
+        .dark-mode .bottom-nav {
+            background: rgba(28,28,30,0.95);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 12px;
+            transition: background 0.2s;
+            min-width: 44px;
+            min-height: 44px;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .nav-item:active {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .dark-mode .nav-item:active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-item.active {
+            background: rgba(0,122,255,0.1);
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            pointer-events: none;
+        }
+
+        .nav-name {
+            font-size: 10px;
+            pointer-events: none;
+        }
+
+        /* 对话框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 15px;
+            max-height: 60vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-footer {
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            min-height: 44px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* 确保输入元素在iOS上看起来正常 */
+        input, textarea, select {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 16px;
+        }
+
+        /* 确保按钮在iOS上有正确的光标 */
+        button {
+            cursor: pointer;
+        }
+
+        /* 加载指示器 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 通知 */
+        .notification {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card);
+            color: var(--text);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            animation: fadeIn 0.3s, fadeOut 0.3s 2.7s forwards;
+            max-width: 80%;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .notification.info {
+            border-left: 4px solid var(--primary);
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* 文件上传样式 */
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+    </style>
 </head>
 <body>
-  <div id="phone-screen">
-    <div id="status-bar">
-      <span id="status-bar-time">12:00</span>
-      <div id="status-bar-battery" class="battery-container">
-        <span class="battery-text">--%</span>
-        <div class="battery-icon">
-          <div class="battery-level"></div>
+    <div class="phone" id="phone">
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="time">9:41</div>
+            <div class="battery">
+                <span>80%</span>
+                <div class="battery-level">
+                    <div class="battery-fill"></div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    
-    <div id="notification-bar">
-      <img id="notification-avatar" src="">
-      <div id="notification-content">
-        <div class="name"></div>
-        <div class="message"></div>
-      </div>
-    </div>
-    
-    <div id="home-screen" class="screen active">
-      <div id="main-content-area">
-        <div id="profile-widget">
-          <img id="profile-banner-img" src="https://i.imgur.com/1n3a43H.jpeg" class="editable-image">
-          <div class="profile-avatar-container">
-            <img id="profile-avatar-img" src="https://i.postimg.cc/y8xWzCqj/anime-boy.jpg" class="editable-image">
-          </div>
-          <div class="profile-info">
-            <p id="profile-username" class="editable-text">@我的世界</p>
-            <p id="profile-sub-username" class="editable-text">@myworld</p>
-            <p id="profile-bio" class="editable-text">记录生活的点点滴滴</p>
-            <p id="profile-location" class="editable-text">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5-2.5-1.12 2.5-2.5 2.5z"></path>
-              </svg>
-              <span>我的城市</span>
-            </p>
-          </div>
+
+        <!-- 主屏幕 -->
+        <div class="screen active" id="home-screen">
+            <div class="app-grid">
+                <div class="app" data-app="chat">
+                    <div class="app-icon">🤖</div>
+                    <div class="app-name">AI聊天</div>
+                </div>
+                <div class="app" data-app="shop">
+                    <div class="app-icon">🛍️</div>
+                    <div class="app-name">购物中心</div>
+                </div>
+                <div class="app" data-app="account">
+                    <div class="app-icon">💰</div>
+                    <div class="app-name">记账</div>
+                </div>
+                <div class="app" data-app="book">
+                    <div class="app-icon">📚</div>
+                    <div class="app-name">世界书</div>
+                </div>
+                <div class="app" data-app="settings">
+                    <div class="app-icon">⚙️</div>
+                    <div class="app-name">设置</div>
+                </div>
+                <div class="app" data-app="music">
+                    <div class="app-icon">🎵</div>
+                    <div class="app-name">音乐</div>
+                </div>
+                <div class="app" data-app="weather">
+                    <div class="app-icon">⛅</div>
+                    <div class="app-name">天气</div>
+                </div>
+                <div class="app" data-app="calculator">
+                    <div class="app-icon">🧮</div>
+                    <div class="app-name">计算器</div>
+                </div>
+                <div class="app" data-app="notes">
+                    <div class="app-icon">📝</div>
+                    <div class="app-name">备忘录</div>
+                </div>
+                <div class="app" data-app="camera">
+                    <div class="app-icon">📷</div>
+                    <div class="app-name">相机</div>
+                </div>
+                <div class="app" data-app="gallery">
+                    <div class="app-icon">🖼️</div>
+                    <div class="app-name">相册</div>
+                </div>
+                <div class="app" data-app="files">
+                    <div class="app-icon">📁</div>
+                    <div class="app-name">文件</div>
+                </div>
+            </div>
         </div>
-        
-        <div id="desktop-layout">
-          <div id="desktop-widget-column">
-            <div class="desktop-widget text-only">
-              <p id="widget-text-1" class="editable-text">记录生活的美好</p>
-            </div>
-            <div class="desktop-widget icon-left">
-              <img id="widget-avatar-1" src="https://i.imgur.com/1n3a43H.jpeg" class="editable-image">
-              <span id="widget-text-2" class="editable-text">保持热爱</span>
-            </div>
-            <div class="desktop-widget icon-right">
-              <span id="widget-text-3" class="editable-text">享受当下</span>
-              <img id="widget-avatar-2" src="https://i.imgur.com/5A0tE9a.jpeg" class="editable-image">
-            </div>
-          </div>
-          
-          <div id="desktop-app-container">
-            <div class="desktop-app-icon" onclick="showScreen('chat-list-screen')">
-              <div class="icon-bg-desktop">
-                <img id="icon-img-qq" src="https://i.postimg.cc/MTC3Tkw8/IMG-6436.jpg" alt="QQ">
-              </div>
-              <span class="label">QQ</span>
+
+        <!-- AI聊天屏幕 -->
+        <div class="screen" id="chat-screen">
+            <div class="screen-header chat-header">
+                <div class="back-btn" onclick="goHome()">←</div>
+                <div class="chat-info">
+                    <div class="chat-title">AI助手</div>
+                    <div class="chat-status">在线</div>
+                </div>
             </div>
             
-            <div class="desktop-app-icon" onclick="showScreen('world-book-screen')">
-              <div class="icon-bg-desktop">
-                <img id="icon-img-world-book" src="https://i.postimg.cc/HWf1JKzn/IMG-6435.jpg" alt="世界书">
-              </div>
-              <span class="label">世界书</span>
+            <div class="messages" id="chat-messages">
+                <div class="message received">
+                    你好！我是AI助手，有什么可以帮您的吗？
+                    <div class="message-time">9:41</div>
+                </div>
+                <div class="message sent">
+                    介绍一下手机模拟器功能
+                    <div class="message-time">9:42</div>
+                </div>
+                <div class="message received">
+                    本模拟器包含AI聊天、购物、记账、世界书等核心功能，采用响应式设计，适配移动端，可在Koder中运行演示。
+                    <div class="message-time">9:42</div>
+                </div>
             </div>
             
-            <div class="desktop-app-icon" onclick="showScreen('wallpaper-screen')">
-              <div class="icon-bg-desktop">
-                <img id="icon-img-wallpaper" src="https://i.postimg.cc/T1j03pQr/IMG-6440.jpg" alt="外观设置">
-              </div>
-              <span class="label">外观设置</span>
+            <div class="input-area">
+                <input type="text" class="message-input" id="message-input" placeholder="输入消息..." onkeypress="sendMessageOnEnter(event)">
+                <button class="send-btn" onclick="sendMessage()">↑</button>
+            </div>
+        </div>
+
+        <!-- 购物屏幕 -->
+        <div class="screen" id="shop-screen">
+            <div class="screen-header shop-header">
+                <div class="back-btn" onclick="goHome()">←</div>
+                <div class="screen-title">购物中心</div>
+                <div class="cart-btn" onclick="viewCart()">
+                    🛒
+                    <span class="cart-count" id="cart-count">0</span>
+                </div>
             </div>
             
-            <div class="desktop-app-icon" onclick="showScreen('api-settings-screen')">
-              <div class="icon-bg-desktop">
-                <img id="icon-img-api-settings" src="https://i.postimg.cc/MK8rJ8t7/IMG-6438.jpg" alt="设置">
-              </div>
-              <span class="label">设置</span>
+            <div class="products" id="products">
+                <!-- 产品将通过JS动态添加 -->
             </div>
-          </div>
         </div>
-      </div>
-      
-      <div id="desktop-dock">
-        <div class="desktop-app-icon" onclick="showScreen('album-screen')">
-          <div class="icon-bg-desktop">
-            <img id="icon-img-album" src="https://i.postimg.cc/Y0T0rKz2/IMG-7303.jpg" alt="相册">
-          </div>
-          <span class="label">相册</span>
-        </div>
-        
-        <div class="desktop-app-icon" onclick="showScreen('music-screen')">
-          <div class="icon-bg-desktop">
-            <img id="icon-img-music" src="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1757748720126_qdqqd_1jt5sv.jpeg" alt="音乐">
-          </div>
-          <span class="label">音乐</span>
-        </div>
-        
-        <div class="desktop-app-icon" onclick="showScreen('notes-screen')">
-          <div class="icon-bg-desktop">
-            <img id="icon-img-notes" src="https://i.postimg.cc/3Rg6tT0W/IMG-7305.jpg" alt="备忘录">
-          </div>
-          <span class="label">备忘录</span>
-        </div>
-        
-        <div class="desktop-app-icon" onclick="showScreen('files-screen')">
-          <div class="icon-bg-desktop">
-            <img id="icon-img-files" src="https://i.postimg.cc/7YjYxYvG/IMG-7306.jpg" alt="文件">
-          </div>
-          <span class="label">文件</span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 世界书屏幕 -->
-    <div id="world-book-screen" class="screen">
-      <div class="header">
-        <div class="header-left-actions">
-          <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
-          <span class="action-btn" id="export-world-book-btn" title="导出世界书">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-          </span>
-        </div>
-        <span>世界书</span>
-        <div class="header-actions">
-          <span class="action-btn" id="manage-world-book-categories-btn" title="管理分类">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-          </span>
-          <span class="action-btn" id="add-world-book-btn">+</span>
-        </div>
-      </div>
-      
-      <div id="world-book-tabs"></div>
-      <div id="world-book-content-container"></div>
-    </div>
-    
-    <!-- 世界书编辑器 -->
-    <div id="world-book-editor-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" onclick="showScreen('world-book-screen')">‹</span>
-        <span id="world-book-editor-title">编辑世界书</span>
-        <span class="save-btn" id="save-world-book-btn">保存</span>
-      </div>
-      
-      <div class="form-container">
-        <div class="form-group">
-          <label for="world-book-name-input">书名</label>
-          <input type="text" id="world-book-name-input" placeholder="请输入世界书的名称...">
-        </div>
-        
-        <div class="form-group">
-          <label for="world-book-category-select">分类</label>
-          <select id="world-book-category-select"></select>
-        </div>
-        
-        <div class="form-group" style="flex-grow: 1; display: flex; flex-direction: column;">
-          <label>内容条目</label>
-          <div id="world-book-entries-container" style="display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding: 5px; flex-grow: 1;">
-          </div>
-        </div>
-        
-        <button id="add-world-book-entry-btn" class="form-button form-button-secondary">[+] 添加新条目</button>
-      </div>
-    </div>
-    
-    <!-- QQ聊天列表 -->
-    <div id="chat-list-screen" class="screen">
-      <div class="header" id="main-chat-list-header">
-        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
-        <span id="chat-list-title">消息</span>
-        <div class="header-actions">
-          <span class="action-btn" id="add-group-chat-btn" title="创建群聊">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17.5 17.5C19.1569 17.5 20.5 16.1569 20.5 14.5C20.5 12.8431 19.1569 11.5 17.5 11.5C15.8431 11.5 14.5 12.8431 14.5 14.5C14.5 16.1569 15.8431 17.5 17.5 17.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 21L19 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8.5 11.5C10.1569 11.5 11.5 10.1569 11.5 8.5C11.5 6.84315 10.1569 5.5 8.5 5.5C6.84315 5.5 5.5 6.84315 5.5 8.5C5.5 10.1569 6.84315 11.5 8.5 11.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12.5 14.5H4.5C3.39543 14.5 2.5 15.3954 2.5 16.5V18.5H12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="action-btn" id="add-chat-btn">+</span>
-        </div>
-      </div>
-      
-      <div id="messages-view" class="chat-list-view active">
-        <div id="chat-list"></div>
-      </div>
-      
-      <div id="chat-list-bottom-nav">
-        <div class="nav-item active" data-view="messages-view">
-          <span>消息</span>
-        </div>
-        <div class="nav-item" data-view="contacts-view">
-          <span>联系人</span>
-        </div>
-        <div class="nav-item" data-view="groups-view">
-          <span>群聊</span>
-        </div>
-        <div class="nav-item" data-view="favorites-view">
-          <span>收藏</span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 联系人列表 -->
-    <div id="contacts-view" class="chat-list-view">
-      <div class="header">
-        <span class="back-btn" id="contacts-back-btn">‹</span>
-        <span>联系人</span>
-        <div class="header-actions">
-          <span class="action-btn" id="add-contact-btn">+</span>
-        </div>
-      </div>
-      <div id="contacts-list" class="list-container"></div>
-    </div>
-    
-    <!-- 群聊列表 -->
-    <div id="groups-view" class="chat-list-view">
-      <div class="header">
-        <span class="back-btn" id="groups-back-btn">‹</span>
-        <span>群聊</span>
-        <div class="header-actions">
-          <span class="action-btn" id="create-group-btn">+</span>
-        </div>
-      </div>
-      <div id="groups-list" class="list-container"></div>
-    </div>
-    
-    <!-- 收藏列表 -->
-    <div id="favorites-view" class="chat-list-view">
-      <div class="header">
-        <span class="back-btn" id="favorites-back-btn">‹</span>
-        <span>我的收藏</span>
-        <span class="action-btn" id="favorites-edit-btn">编辑</span>
-      </div>
-      <div id="favorites-list" class="list-container"></div>
-    </div>
-    
-    <!-- QQ聊天界面 -->
-    <div id="chat-interface-screen" class="screen">
-      <div class="header">
-        <div class="default-controls">
-          <span class="back-btn" id="back-to-list-btn">‹</span>
-          <div id="chat-header-title-wrapper">
-            <span id="chat-header-title">聊天对象</span>
-            <div id="chat-header-status">
-              <span class="status-dot"></span>
-              <span class="status-text">在线</span>
+
+        <!-- 记账屏幕 -->
+        <div class="screen" id="account-screen">
+            <div class="account-header">
+                <div class="back-btn" onclick="goHome()">←</div>
+                <div class="balance">¥ <span id="balance">5,280.50</span></div>
+                <div class="balance-label">当前余额</div>
             </div>
-          </div>
-          <div class="header-actions">
-            <span class="action-btn" id="open-memory-screen-btn" title="长期记忆">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 6L9 9L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 5V19C21 20.1046 20.1046 21 19 21H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-            <span class="action-btn" id="chat-settings-btn" title="聊天设置">
-              <img src="https://i.postimg.cc/bvPq64cv/CCA834-BA-5-A90-408-D-94-FA-7-EE156-B6-A765.png" alt="设置">
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      <div id="chat-messages">
-        <div id="typing-indicator">对方正在输入...</div>
-      </div>
-      
-      <div id="chat-input-area">
-        <div id="reply-preview-bar">
-          <div class="reply-preview-content">
-            <div class="sender">回复 xxx:</div>
-            <div class="text">被引用的消息内容...</div>
-          </div>
-          <span id="cancel-reply-btn">×</span>
-        </div>
-        
-        <div id="chat-input-actions-top">
-          <button id="open-sticker-panel-btn" class="chat-action-icon-btn action-button" title="表情面板">+</button>
-          <button id="send-photo-btn" class="chat-action-icon-btn action-button" title="发送照片">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-              <circle cx="12" cy="13" r="4"></circle>
-            </svg>
-          </button>
-          <button id="upload-image-btn" class="chat-action-icon-btn action-button" title="上传图片">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 3.5H3C2.44772 3.5 2 3.94772 2 4.5V19.5C2 20.0523 2.44772 20.5 3 20.5H21C21.5523 20.5 22 20.0523 22 19.5V4.5C22 3.94772 21.5523 3.5 21 3.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-              <path d="M16.5 13.5C17.6046 13.5 18.5 12.6046 18.5 11.5C18.5 10.3954 17.6046 9.5 16.5 9.5C15.3954 9.5 14.5 10.3954 14.5 11.5C14.5 12.6046 15.3954 13.5 16.5 13.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-              <path d="M22 14.5L18 10.5L10.3333 18.5M12.5 16L9 12.5L2 19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-          </button>
-          <button id="voice-message-btn" class="chat-action-icon-btn action-button" title="发送语音">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-              <path d="M12 19v4"></path>
-              <path d="M8 23h8"></path>
-            </svg>
-          </button>
-          <button id="video-call-btn" class="chat-action-icon-btn action-button" title="视频通话">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="23 7 16 12 23 17 23 7"></polygon>
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-            </svg>
-          </button>
-        </div>
-        
-        <div id="chat-input-main-row">
-          <button id="chat-expand-btn" class="chat-action-icon-btn action-button" title="展开功能">+</button>
-          <textarea id="chat-input" rows="1" placeholder="输入消息..."></textarea>
-          <div id="input-actions-wrapper">
-            <button id="send-btn" class="action-button">发送</button>
-          </div>
-        </div>
-      </div>
-      
-      <div id="sticker-panel">
-        <div id="sticker-panel-header">
-          <span class="panel-btn" id="close-sticker-panel-btn">取消</span>
-          <span class="title">我的表情</span>
-          <div style="display: flex; gap: 10px;">
-            <span class="panel-btn" id="manage-stickers-btn">管理</span>
-            <span class="panel-btn" id="upload-sticker-btn">上传</span>
-          </div>
-        </div>
-        <div id="sticker-category-tabs"></div>
-        <div id="sticker-grid"></div>
-      </div>
-      <input type="file" id="sticker-upload-input" accept="image/*" style="display: none;">
-      <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
-    </div>
-    
-    <!-- 外观设置屏幕 -->
-    <div id="wallpaper-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
-        <span>外观设置</span>
-        <span style="width: 30px;"></span>
-      </div>
-      
-      <div class="form-container">
-        <label style="font-weight: 500; color: var(--text-secondary);">主屏幕壁纸</label>
-        <div id="wallpaper-preview">点击下方上传</div>
-        <div class="bg-upload-container">
-          <button class="form-button-secondary" onclick="document.getElementById('wallpaper-upload-input').click();">本地上传</button>
-          <button id="upload-wallpaper-url-btn" class="form-button-secondary">网络URL</button>
-          <button id="remove-wallpaper-btn" class="form-button-secondary">移除壁纸</button>
-        </div>
-        <input type="file" id="wallpaper-upload-input" accept="image/*" hidden>
-        
-        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
-        
-        <label style="font-weight: 500; color: var(--text-secondary);">聊天背景</label>
-        <div id="global-bg-preview" class="wallpaper-preview" style="height: 160px; width: 90px;">点击下方上传</div>
-        <div class="bg-upload-container">
-          <button class="form-button-secondary" onclick="document.getElementById('global-bg-input').click()">本地上传</button>
-          <button id="upload-global-bg-url-btn" class="form-button-secondary">网络URL</button>
-          <button id="remove-global-bg-btn" class="form-button-secondary">移除背景</button>
-        </div>
-        <input type="file" id="global-bg-input" accept="image/*" style="display: none;">
-        
-        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
-        
-        <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <label for="theme-toggle-switch" style="margin-bottom: 0;">夜间模式</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="theme-toggle-switch">
-            <span class="slider"></span>
-          </label>
-        </div>
-        
-        <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <label for="status-bar-toggle-switch" style="margin-bottom: 0;">顶部状态栏</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="status-bar-toggle-switch">
-            <span class="slider"></span>
-          </label>
-        </div>
-        
-        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
-        
-        <div style="width:100%; text-align: left; margin-bottom: 15px;">
-          <label style="font-weight: 500; color: var(--text-secondary);">应用图标设置</label>
-        </div>
-        <div id="icon-settings-grid"></div>
-        
-        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
-        
-        <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; width:100%; text-align: left;">外观预设管理</h3>
-        <div class="form-group" style="width:100%;">
-          <label for="appearance-preset-select">选择或切换预设</label>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <select id="appearance-preset-select" style="flex-grow: 1;"></select>
-            <button id="save-appearance-preset-btn" class="form-button-secondary" style="margin-top: 0; padding: 12px;">保存</button>
-            <button id="delete-appearance-preset-btn" class="form-button-secondary" style="margin-top: 0; padding: 12px; background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2;">删除</button>
-          </div>
-        </div>
-        
-        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
-        
-        <div class="form-group" style="width:100%;">
-          <label for="global-css-input">
-            全局美化样式 (CSS)
-            <button id="reset-global-css-btn" type="button" style="background: none; border: 1px solid #ccc; color: #555; font-size: 12px; padding: 2px 8px; border-radius: 5px; cursor: pointer; margin-left: 10px;">重置</button>
-          </label>
-          <textarea id="global-css-input" rows="6" style="width: 100%; margin-top: 8px; font-family: monospace; font-size: 16px; resize: vertical;" placeholder="/* 在此输入自定义CSS */"></textarea>
-        </div>
-        
-        <button class="form-button" id="save-wallpaper-btn" style="margin-top: 30px;">保存所有外观设置</button>
-      </div>
-    </div>
-    
-    <!-- 设置屏幕 -->
-    <div id="api-settings-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
-        <span>设置</span>
-        <span style="width: 30px;"></span>
-      </div>
-      
-      <div class="form-container">
-        <div class="form-group">
-          <label for="language-select">语言 (Language)</label>
-          <select id="language-select">
-            <option value="zh-CN">简体中文</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-        
-        <hr style="margin: 30px 0; opacity: 0.3;">
-        
-        <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">API 设置</h3>
-        
-        <div class="form-group">
-          <label for="proxy-url">反代地址</label>
-          <input type="text" id="proxy-url" placeholder="例如: https://api.openai.com">
-        </div>
-        
-        <div class="form-group">
-          <label for="api-key">密钥 (API Key)</label>
-          <input type="password" id="api-key" placeholder="sk-...">
-        </div>
-        
-        <div class="form-group">
-          <label for="model-select">模型</label>
-          <select id="model-select"></select>
-        </div>
-        
-        <button class="form-button" id="fetch-models-btn">拉取模型</button>
-        
-        <hr style="margin: 30px 0; opacity: 0.3;">
-        
-        <div class="form-group">
-          <label for="api-temperature-slider">API 温度 (Temperature) <span id="api-temperature-value">0.8</span></label>
-          <p style="font-size: 12px; font-weight: normal; color: #999; margin-top: 5px;">控制AI回复的随机性和创造性。值越高，回复越随机；值越低，回复越确定。建议范围 0.7-1.0。</p>
-          <input type="range" id="api-temperature-slider" min="0" max="2" step="0.1" value="0.8" style="width: 100%; margin-top: 8px;">
-        </div>
-        
-        <hr style="margin: 30px 0; opacity: 0.3;">
-        
-        <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">存储空间优化</h3>
-        
-        <p id="total-image-size-display" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px; text-align: center;">
-          正在计算本地图片总大小...
-        </p>
-        
-        <button class="form-button form-button-secondary" id="compress-images-btn" style="background-color: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;">
-          一键压缩本地图片
-        </button>
-        
-        <p style="font-size: 12px; color: #8a8a8a; margin-top: 8px; line-height: 1.5;">
-          此功能会将您所有本地上传的图片压缩为JPEG格式，以大幅减小数据体积。
-          <br><strong style="color: #ff3b30;">警告：这是一个有损压缩且不可逆的操作，会轻微降低图片质量。建议操作前先备份数据。</strong>
-        </p>
-        
-        <hr style="margin: 30px 0; opacity: 0.3;">
-        
-        <button class="form-button" id="save-api-settings-btn" style="margin-top: 20px;">保存所有设置</button>
-        <button class="form-button" id="export-data-btn">导出数据</button>
-        <button class="form-button" id="import-btn">导入备份文件</button>
-        <button class="form-button form-button-secondary" id="cleanup-data-btn" style="background-color: #ffebee; color: #c62828; border-color: #ef9a9a; margin-top: 10px;">清理冗余数据</button>
-        <button class="form-button form-button-secondary" id="delete-world-books-btn" style="background-color: #ffebee; color: #c62828; border-color: #ef9a9a; margin-top: 10px;">删除世界书</button>
-        <input id="import-data-input" type="file" accept="application/json" hidden>
-      </div>
-    </div>
-    
-    <!-- 聊天设置 -->
-    <div id="chat-settings-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" onclick="showScreen('chat-interface-screen')">‹</span>
-        <span>聊天设置</span>
-        <span class="save-btn" id="save-chat-settings-btn">保存</span>
-      </div>
-      
-      <div class="form-container">
-        <div class="form-group" id="chat-name-group">
-          <label for="chat-name-input">备注名 / 群名</label>
-          <input type="text" id="chat-name-input">
-        </div>
-        
-        <div class="form-group" id="my-nickname-group">
-          <label for="my-nickname-input">我的昵称</label>
-          <input type="text" id="my-nickname-input">
-        </div>
-        
-        <div class="form-group" id="my-group-nickname-group">
-          <label for="my-group-nickname-input">我的群昵称</label>
-          <input type="text" id="my-group-nickname-input">
-        </div>
-        
-        <div class="form-group" id="ai-persona-group">
-          <label for="ai-persona">对方人设</label>
-          <textarea id="ai-persona" rows="3"></textarea>
-        </div>
-        
-        <div class="form-group" id="ai-avatar-group">
-          <label>对方头像</label>
-          <div class="avatar-upload">
-            <img id="ai-avatar-preview">
-            <button onclick="document.getElementById('ai-avatar-input').click()">上传对方头像</button>
-            <button id="manage-ai-avatar-library-btn">管理头像库</button>
-            <input type="file" id="ai-avatar-input" accept="image/*">
-          </div>
-        </div>
-        
-        <div class="form-group" id="my-persona-group">
-          <label for="my-persona">我的人设</label>
-          <textarea id="my-persona" rows="3"></textarea>
-        </div>
-        
-        <div class="form-group" id="my-avatar-group">
-          <label>我的头像</label>
-          <div class="avatar-upload">
-            <img id="my-avatar-preview">
-            <button onclick="document.getElementById('my-avatar-input').click()">上传我的头像</button>
-            <button id="manage-my-avatar-library-btn">管理头像库</button>
-            <input type="file" id="my-avatar-input" accept="image/*">
-          </div>
-        </div>
-        
-        <div class="form-group" id="group-members-group">
-          <label>群成员人设</label>
-          <div id="group-members-settings"></div>
-          <button id="manage-members-btn" class="form-button form-button-secondary" style="margin-top: 15px;">管理群成员</button>
-        </div>
-        
-        <div class="form-group">
-          <label for="max-memory">短期记忆（上下文）条数</label>
-          <input type="number" id="max-memory" value="10">
-        </div>
-        
-        <div class="form-group">
-          <label for="auto-memory-interval">自动总结间隔（消息条数）</label>
-          <input type="number" id="auto-memory-interval" min="10" value="20" style="width: 80px; text-align: center;">
-          <p style="font-size: 12px; color: #8a8a8a; margin-top: 8px;">建议值 60-150。值越小，总结越频繁，但API费用也越高。</p>
-        </div>
-        
-        <hr style="opacity: 0.3; margin: 20px 0;">
-        
-        <div class="form-group">
-          <label>聊天气泡主题</label>
-          <div class="theme-selector">
-            <label><input type="radio" name="theme-select" value="default" id="theme-default"> 默认</label>
-            <label><input type="radio" name="theme-select" value="pink_blue"> 粉蓝</label>
-            <label><input type="radio" name="theme-select" value="blue_white"> 蓝白</label>
-            <label><input type="radio" name="theme-select" value="purple_yellow"> 紫黄</label>
-            <label><input type="radio" name="theme-select" value="black_white"> 黑白</label>
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label for="font-size-slider">聊天字体大小 <span id="font-size-value">13px</span></label>
-          <input type="range" id="font-size-slider" min="12" max="20" step="1" value="13" style="width: 100%; margin-top: 8px;">
-        </div>
-        
-        <div class="form-group">
-          <label>聊天背景</label>
-          <div class="bg-upload-container">
-            <button type="button" class="form-button-secondary" style="width: auto; padding: 8px 12px; margin-top: 0;" onclick="document.getElementById('bg-input').click()">上传背景图</button>
-            <button type="button" id="remove-bg-btn">移除背景</button>
-          </div>
-          <img id="bg-preview" class="bg-preview-img">
-          <input type="file" id="bg-input" accept="image/*" style="display: none;">
-        </div>
-        
-        <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
-        
-        <button class="form-button form-button-secondary" id="export-single-chat-btn" style="background-color: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;">导出该聊天</button>
-        <button class="form-button form-button-secondary" id="import-single-chat-btn" style="background-color: #fff3e0; color: #ef6c00; border-color: #ffe0b2;">导入该聊天</button>
-        <input type="file" id="import-single-chat-input" accept="application/json" hidden>
-        <button class="form-button form-button-secondary" id="clear-chat-btn">清空聊天记录</button>
-      </div>
-    </div>
-    
-    <!-- 其他功能屏幕 -->
-    <div id="album-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" id="album-back-btn" onclick="showScreen('home-screen')">‹</span>
-        <span>我的相册</span>
-        <span class="action-btn" id="create-album-btn-page">+</span>
-      </div>
-      <div class="list-container">
-        <div id="album-grid-page"></div>
-      </div>
-    </div>
-    
-    <div id="music-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
-        <span>音乐</span>
-        <span style="width: 30px;"></span>
-      </div>
-      <div class="list-container">
-        <div id="music-player">
-          <div id="music-cover">
-            <img src="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1757748720126_qdqqd_1jt5sv.jpeg" alt="专辑封面">
-          </div>
-          <div id="music-info">
-            <div id="music-title">歌曲名称</div>
-            <div id="music-artist">歌手</div>
-          </div>
-          <div id="music-controls">
-            <button id="music-prev">‹</button>
-            <button id="music-play">▶</button>
-            <button id="music-next">›</button>
-          </div>
-        </div>
-        <div id="playlist"></div>
-      </div>
-    </div>
-    
-    <div id="notes-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
-        <span>备忘录</span>
-        <span class="action-btn" id="add-note-btn">+</span>
-      </div>
-      <div class="list-container">
-        <div id="notes-list"></div>
-      </div>
-    </div>
-    
-    <div id="files-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
-        <span>文件管理</span>
-        <span style="width: 30px;"></span>
-      </div>
-      <div class="list-container">
-        <div id="files-list"></div>
-      </div>
-    </div>
-    
-    <!-- 模态框 -->
-    <div id="custom-modal-overlay">
-      <div id="custom-modal">
-        <div class="custom-modal-header" id="custom-modal-title"></div>
-        <div class="custom-modal-body" id="custom-modal-body"></div>
-        <div class="custom-modal-footer">
-          <button id="custom-modal-cancel">取消</button>
-          <button id="custom-modal-confirm" class="confirm-btn">确定</button>
-        </div>
-      </div>
-    </div>
-    
-    <div id="import-options-modal" class="modal">
-      <div class="modal-content" style="height: auto;">
-        <div class="modal-header">
-          <span>发现备份文件</span>
-        </div>
-        <div class="modal-body">
-          <p>在此备份文件中找到了以下数据：</p>
-          <ul id="import-preview-list" style="text-align: left; margin-left: 20px; max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 8px;"></ul>
-          <hr style="opacity: 0.2; margin: 20px 0;">
-          <p style="font-weight: bold;">请选择导入方式：</p>
-        </div>
-        <div class="modal-footer" style="flex-direction: column; gap: 10px;">
-          <button class="save btn-danger" id="confirm-full-import-btn" style="width: 100%; background-color: #ff3b30; border-color: #ff3b30;">
-            <strong>完全导入 (覆盖所有数据)</strong>
-            <small style="display: block; font-weight: normal; opacity: 0.8;">将删除本地所有数据，并替换为备份文件中的数据。</small>
-          </button>
-          <button class="save" id="confirm-selective-import-btn" style="width: 100%;">
-            <strong>选择性导入 (合并数据)</strong>
-            <small style="display: block; font-weight: normal; opacity: 0.8;">将备份文件中的数据【添加】到您现有的数据中。</small>
-          </button>
-          <button class="cancel" id="cancel-import-options-btn" style="width: 100%; margin-top: 8px;">取消</button>
-        </div>
-      </div>
-    </div>
-    
-    <div id="contact-picker-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" id="cancel-contact-picker-btn">取消</span>
-        <span>选择联系人</span>
-        <span class="save-btn" id="confirm-contact-picker-btn">完成(0)</span>
-      </div>
-      <div class="list-container" id="contact-picker-list"></div>
-    </div>
-    
-    <div id="member-management-screen" class="screen">
-      <div class="header">
-        <span class="back-btn" id="back-from-member-management">‹</span>
-        <span>群成员管理</span>
-        <span style="width: 30px;"></span>
-      </div>
-      <div class="list-container" id="member-management-list"></div>
-      <div id="member-management-actions">
-        <button id="add-existing-contact-btn">从好友列表添加</button>
-        <button id="create-new-member-btn">创建群内新成员</button>
-      </div>
-    </div>
-    
-    <div id="incoming-call-modal" class="modal">
-      <div class="incoming-call-content">
-        <img id="caller-avatar" class="caller-avatar" src="">
-        <div id="caller-name" class="caller-name"></div>
-        <div class="caller-text">邀请你视频通话</div>
-        <div class="incoming-call-actions">
-          <div class="action-button-wrapper">
-            <button id="decline-call-btn" class="call-action-btn decline"></button>
-            <span>拒绝</span>
-          </div>
-          <div class="action-button-wrapper">
-            <button id="accept-call-btn" class="call-action-btn accept"></button>
-            <span>接听</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div id="video-call-screen" class="screen">
-      <div class="video-call-top-bar">
-        <span id="call-timer">00:00</span>
-      </div>
-      <div class="video-call-avatar-area">
-        <div id="participant-avatars-grid"></div>
-      </div>
-      <div id="video-call-main" class="video-call-main"></div>
-      <div class="video-call-controls">
-        <button id="user-speak-btn" class="control-btn speak-btn"></button>
-        <button id="hang-up-btn" class="control-btn hangup-btn"></button>
-      </div>
-    </div>
-    
-    <div id="world-book-category-manager-modal" class="modal">
-      <div class="modal-content" style="height: 60%;">
-        <div class="modal-header">
-          <span>管理世界书分类</span>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>新建分类</label>
-            <div style="display: flex; gap: 10px;">
-              <input type="text" id="new-category-name-input" placeholder="输入分类名..." style="flex-grow: 1;">
-              <button id="add-new-category-btn" class="form-button" style="width: auto; margin-top: 0; padding: 0 15px;">添加</button>
+            
+            <div class="account-actions">
+                <button class="action-btn income" onclick="addTransaction('income')">
+                    <span style="font-size: 20px;">↑</span>
+                    收入
+                </button>
+                <button class="action-btn expense" onclick="addTransaction('expense')">
+                    <span style="font-size: 20px;">↓</span>
+                    支出
+                </button>
             </div>
-          </div>
-          <hr style="opacity: 0.2;">
-          <div id="existing-categories-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="save" id="close-category-manager-btn" style="width: 100%;">完成</button>
-        </div>
-      </div>
-    </div>
-    
-    <div id="member-settings-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <span>编辑群成员</span>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="member-name-input">名字</label>
-            <input type="text" id="member-name-input">
-          </div>
-          <div class="form-group">
-            <label for="member-persona-input">人设</label>
-            <textarea id="member-persona-input" rows="4"></textarea>
-          </div>
-          <div class="form-group">
-            <label>头像</label>
-            <div class="avatar-upload">
-              <img id="member-avatar-preview">
-              <button onclick="document.getElementById('member-avatar-input').click()">上传头像</button>
-              <input type="file" id="member-avatar-input" accept="image/*">
+            
+            <div class="transactions" id="transactions">
+                <!-- 交易记录通过JS动态添加 -->
             </div>
-          </div>
         </div>
-        <div class="modal-footer">
-          <button class="cancel" id="cancel-member-settings-btn">取消</button>
-          <button class="save" id="save-member-settings-btn">保存</button>
-        </div>
-      </div>
-    </div>
-    
-    <div id="transfer-modal">
-      <div class="transfer-content">
-        <div class="transfer-header">给Ta一个惊喜！</div>
-        <div class="transfer-input-group">
-          <label for="transfer-amount">转账金额</label>
-          <input type="number" id="transfer-amount" placeholder="0.00" min="0" step="0.01">
-        </div>
-        <div class="transfer-input-group">
-          <label for="transfer-note">备注 (可选)</label>
-          <input type="text" id="transfer-note" placeholder="留下你的小心思~" maxlength="20">
-        </div>
-        <div class="transfer-actions">
-          <button id="transfer-cancel-btn">取消</button>
-          <button id="transfer-confirm-btn">确认转账</button>
-        </div>
-      </div>
-    </div>
-    
-    <div id="create-post-modal" class="modal">
-      <div class="modal-content" style="height: auto; max-height: 90%;">
-        <div class="modal-header">
-          <span>发布动态</span>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <textarea id="post-public-text" rows="3" placeholder="分享新鲜事..."></textarea>
-          </div>
-          <div class="form-group">
-            <label>可见范围</label>
-            <div id="post-visibility-options" style="display: flex; gap: 15px; margin-bottom: 10px;">
-              <label><input type="radio" name="visibility" value="public" checked> 公开</label>
-              <label><input type="radio" name="visibility" value="friends"> 仅好友</label>
+
+        <!-- 世界书屏幕 -->
+        <div class="screen" id="book-screen">
+            <div class="screen-header book-header">
+                <div class="back-btn" onclick="goHome()">←</div>
+                <div class="screen-title">世界书</div>
+                <button class="add-book-btn" onclick="addBook()">+</button>
             </div>
-          </div>
-          <div class="form-group">
-            <div id="post-image-preview-container" class="post-image-preview-container">
-              <img id="post-image-preview" src="" alt="图片预览">
-              <button id="post-remove-image-btn">×</button>
+            
+            <div class="books-list" id="books-list">
+                <!-- 书籍通过JS动态添加 -->
             </div>
-            <div class="post-image-upload-options">
-              <button id="post-upload-local-btn" class="form-button-secondary">本地上传</button>
-              <button id="post-use-url-btn" class="form-button-secondary">网络URL</button>
-              <input type="file" id="post-local-image-input" accept="image/*" hidden>
+        </div>
+
+        <!-- 设置屏幕 -->
+        <div class="screen" id="settings-screen">
+            <div class="screen-header">
+                <div class="back-btn" onclick="goHome()">←</div>
+                <div class="screen-title">设置</div>
             </div>
-          </div>
+            
+            <div class="settings-container" id="settings-container">
+                <!-- 设置内容将通过JS动态生成 -->
+            </div>
         </div>
-        <div class="modal-footer">
-          <button class="cancel" id="cancel-create-post-btn">取消</button>
-          <button class="save" id="confirm-create-post-btn">发布</button>
+
+        <!-- 底部导航 -->
+        <div class="bottom-nav">
+            <div class="nav-item active" data-nav="home">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-name">主页</div>
+            </div>
+            <div class="nav-item" data-nav="chat">
+                <div class="nav-icon">🤖</div>
+                <div class="nav-name">AI</div>
+            </div>
+            <div class="nav-item" data-nav="shop">
+                <div class="nav-icon">🛍️</div>
+                <div class="nav-name">购物</div>
+            </div>
+            <div class="nav-item" data-nav="account">
+                <div class="nav-icon">💰</div>
+                <div class="nav-name">记账</div>
+            </div>
+            <div class="nav-item" data-nav="settings">
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-name">设置</div>
+            </div>
         </div>
-      </div>
     </div>
-    
-    <div id="ai-avatar-library-modal" class="modal">
-      <div class="modal-content" style="height: 70%;">
-        <div class="modal-header">
-          <span id="ai-avatar-library-title">头像库</span>
-          <div class="header-actions">
-            <button id="add-ai-avatar-upload-btn" class="action-button">上传</button>
-          </div>
+
+    <!-- 添加交易模态框 -->
+    <div class="modal" id="transaction-modal">
+        <div class="modal-content">
+            <div class="modal-header">添加交易</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">类型</label>
+                    <select id="transaction-type" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="income">收入</option>
+                        <option value="expense">支出</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">金额</label>
+                    <input type="number" id="transaction-amount" placeholder="0.00" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">描述</label>
+                    <input type="text" id="transaction-desc" placeholder="请输入描述" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTransaction()">保存</button>
+            </div>
         </div>
-        <div class="modal-body" style="padding: 15px;">
-          <div id="ai-avatar-library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px;"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="save" id="close-ai-avatar-library-btn" style="width: 100%;">关闭</button>
-        </div>
-      </div>
     </div>
-    
-    <div id="my-avatar-library-modal" class="modal">
-      <div class="modal-content" style="height: 70%;">
-        <div class="modal-header">
-          <span id="my-avatar-library-title">我的头像库</span>
-          <div class="header-actions">
-            <button id="add-my-avatar-upload-btn" class="action-button">上传</button>
-          </div>
+
+    <!-- 购物车模态框 -->
+    <div class="modal" id="cart-modal">
+        <div class="modal-content">
+            <div class="modal-header">购物车</div>
+            <div class="modal-body" id="cart-items">
+                <!-- 购物车内容通过JS动态添加 -->
+                <p style="text-align: center; color: var(--text-secondary); padding: 20px;">购物车是空的</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">继续购物</button>
+                <button class="btn btn-primary" onclick="checkout()">结算</button>
+            </div>
         </div>
-        <div class="modal-body" style="padding: 15px;">
-          <div id="my-avatar-library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px;"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="save" id="close-my-avatar-library-btn" style="width: 100%;">关闭</button>
-        </div>
-      </div>
     </div>
-    
-    <div id="group-avatar-library-modal" class="modal">
-      <div class="modal-content" style="height: 70%;">
-        <div class="modal-header">
-          <span id="group-avatar-library-title">群头像库</span>
-          <div class="header-actions">
-            <button id="add-group-avatar-upload-btn" class="action-button">上传</button>
-          </div>
+
+    <!-- 添加书籍模态框 -->
+    <div class="modal" id="book-modal">
+        <div class="modal-content">
+            <div class="modal-header">添加世界书</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">书名</label>
+                    <input type="text" id="book-name" placeholder="请输入书名" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">描述</label>
+                    <textarea id="book-desc" placeholder="请输入描述" rows="3" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px; resize: vertical;"></textarea>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">分类</label>
+                    <select id="book-category" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="小说">小说</option>
+                        <option value="科技">科技</option>
+                        <option value="历史">历史</option>
+                        <option value="教育">教育</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveBook()">保存</button>
+            </div>
         </div>
-        <div class="modal-body" style="padding: 15px;">
-          <div id="group-avatar-library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px;"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="save" id="close-group-avatar-library-btn" style="width: 100%;">关闭</button>
-        </div>
-      </div>
     </div>
-    
-    <!-- 音频播放器 -->
-    <audio id="audio-player" style="display:none;"></audio>
-    <audio id="notification-sound-player" preload="auto"></audio>
-    <audio id="tts-audio-player" style="display:none;"></audio>
-    
-  </div>
+
+    <!-- API配置模态框 -->
+    <div class="modal" id="api-modal">
+        <div class="modal-content">
+            <div class="modal-header">API配置</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">连接类型</label>
+                    <select id="api-type" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="direct">直连</option>
+                        <option value="cli">CLI代理</option>
+                        <option value="reverse-proxy">反向代理</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">API端点</label>
+                    <input type="text" id="api-endpoint" placeholder="https://api.example.com/v1" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">API密钥</label>
+                    <input type="password" id="api-key" placeholder="输入API密钥" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">超时时间（秒）</label>
+                    <input type="number" id="api-timeout" value="30" min="5" max="300" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">重试次数</label>
+                    <input type="number" id="api-retry" value="3" min="0" max="10" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div id="api-status-container" style="margin-top: 15px; padding: 10px; border-radius: 8px; background: var(--bg); text-align: center;">
+                    <div id="api-status-text">状态：未连接</div>
+                    <div class="progress-bar" style="margin-top: 10px;">
+                        <div class="progress-bar-fill" id="api-progress" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-success" onclick="testApiConnection()">测试连接</button>
+                <button class="btn btn-primary" onclick="saveApiConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TTS语音配置模态框 -->
+    <div class="modal" id="tts-modal">
+        <div class="modal-content">
+            <div class="modal-header">TTS语音配置</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">语音服务提供商</label>
+                    <select id="tts-provider" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="minimax">Minimax</option>
+                        <option value="azure">Azure Cognitive Services</option>
+                        <option value="google">Google Cloud TTS</option>
+                        <option value="amazon">Amazon Polly</option>
+                        <option value="local">本地TTS引擎</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">API密钥</label>
+                    <input type="password" id="tts-api-key" placeholder="输入TTS API密钥" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">语音模型</label>
+                    <select id="tts-model" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="female-1">女性声音 1</option>
+                        <option value="female-2">女性声音 2</option>
+                        <option value="male-1">男性声音 1</option>
+                        <option value="male-2">男性声音 2</option>
+                        <option value="child">儿童声音</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">语速</label>
+                    <input type="range" id="tts-speed" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 100%;">
+                    <div style="text-align: center; margin-top: 5px; font-size: 14px; color: var(--text-secondary);">
+                        当前值: <span id="tts-speed-value">1.0</span>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">音调</label>
+                    <input type="range" id="tts-pitch" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 100%;">
+                    <div style="text-align: center; margin-top: 5px; font-size: 14px; color: var(--text-secondary);">
+                        当前值: <span id="tts-pitch-value">1.0</span>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">测试文本</label>
+                    <textarea id="tts-test-text" placeholder="输入要测试的文本" rows="2" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">你好，这是一个语音测试。</textarea>
+                </div>
+                <div class="voice-preview" onclick="testTTS()">
+                    <span>🎤 点击测试语音</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTTSConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI文生图配置模态框 -->
+    <div class="modal" id="image-gen-modal">
+        <div class="modal-content">
+            <div class="modal-header">AI文生图配置</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">图像生成服务</label>
+                    <select id="image-gen-provider" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="noval-ai">Noval AI</option>
+                        <option value="nano-banana">Nano Banana</option>
+                        <option value="stable-diffusion">Stable Diffusion</option>
+                        <option value="dall-e">DALL-E</option>
+                        <option value="midjourney">Midjourney (API)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">API密钥</label>
+                    <input type="password" id="image-gen-api-key" placeholder="输入图像生成API密钥" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">默认分辨率</label>
+                    <select id="image-gen-resolution" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="512x512">512x512</option>
+                        <option value="768x768">768x768</option>
+                        <option value="1024x1024">1024x1024</option>
+                        <option value="512x768">512x768</option>
+                        <option value="768x1024">768x1024</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">生成数量</label>
+                    <input type="number" id="image-gen-count" min="1" max="10" value="1" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">风格预设</label>
+                    <select id="image-gen-style" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="realistic">写实风格</option>
+                        <option value="anime">动漫风格</option>
+                        <option value="digital-art">数字艺术</option>
+                        <option value="photographic">摄影风格</option>
+                        <option value="fantasy">奇幻风格</option>
+                        <option value="cyberpunk">赛博朋克</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">测试提示词</label>
+                    <textarea id="image-gen-test-prompt" placeholder="输入测试提示词" rows="2" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">一只可爱的猫在花园里玩耍</textarea>
+                </div>
+                <div class="image-preview" id="image-gen-preview">
+                    <div style="text-align: center; color: var(--text-secondary);">
+                        <div>🖼️</div>
+                        <div>生成的图像将显示在这里</div>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <button class="settings-button secondary" onclick="clearImagePreview()">清除预览</button>
+                    <button class="settings-button success" onclick="testImageGeneration()">测试生成</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveImageGenConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 备份配置模态框 -->
+    <div class="modal" id="backup-modal">
+        <div class="modal-content">
+            <div class="modal-header">备份配置</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">备份服务</label>
+                    <select id="backup-service" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="github">GitHub</option>
+                        <option value="gitlab">GitLab</option>
+                        <option value="dropbox">Dropbox</option>
+                        <option value="google-drive">Google Drive</option>
+                        <option value="local">本地备份</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">仓库/文件夹名称</label>
+                    <input type="text" id="backup-repo" placeholder="user/repo 或 文件夹路径" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">访问令牌/密钥</label>
+                    <input type="password" id="backup-token" placeholder="输入访问令牌" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">备份频率</label>
+                    <select id="backup-frequency" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 16px;">
+                        <option value="manual">手动</option>
+                        <option value="daily">每日</option>
+                        <option value="weekly">每周</option>
+                        <option value="monthly">每月</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">包含的数据</label>
+                    <div style="margin-top: 5px;">
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="backup-chat" checked style="margin-right: 8px;">
+                            <span>聊天记录</span>
+                        </label>
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="backup-transactions" checked style="margin-right: 8px;">
+                            <span>交易记录</span>
+                        </label>
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="backup-books" checked style="margin-right: 8px;">
+                            <span>世界书</span>
+                        </label>
+                        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" id="backup-settings" checked style="margin-right: 8px;">
+                            <span>设置配置</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="backup-status-container" style="margin-top: 15px; padding: 10px; border-radius: 8px; background: var(--bg);">
+                    <div style="font-weight: 500; margin-bottom: 5px;">备份状态</div>
+                    <div id="backup-status-text">上次备份: 从未备份</div>
+                    <div class="progress-bar" style="margin-top: 10px;">
+                        <div class="progress-bar-fill" id="backup-progress" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-warning" onclick="restoreBackup()">恢复备份</button>
+                <button class="btn btn-success" onclick="createBackup()">立即备份</button>
+                <button class="btn btn-primary" onclick="saveBackupConfig()">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入/导出模态框 -->
+    <div class="modal" id="import-export-modal">
+        <div class="modal-content">
+            <div class="modal-header">导入/导出数据</div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 500; margin-bottom: 10px;">导出数据</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="settings-button" onclick="exportData('all')">导出全部数据</button>
+                        <button class="settings-button secondary" onclick="exportData('settings')">仅导出设置</button>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
+                        导出文件格式: JSON
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 500; margin-bottom: 10px;">导入数据</div>
+                    <div class="file-upload">
+                        <button class="settings-button">选择导入文件</button>
+                        <input type="file" id="import-file" accept=".json" onchange="handleImportFileSelect(event)">
+                    </div>
+                    <div id="import-file-info" style="margin-top: 10px; font-size: 12px; color: var(--text-secondary); display: none;">
+                        已选择文件: <span id="import-file-name"></span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 500; margin-bottom: 10px;">数据管理</div>
+                    <div class="settings-row">
+                        <button class="settings-button danger" onclick="clearAllData()">清除所有数据</button>
+                        <button class="settings-button warning" onclick="resetToDefault()">重置为默认</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <div style="font-weight: 500; margin-bottom: 10px;">系统诊断</div>
+                    <button class="settings-button" onclick="runSystemDiagnostics()">运行系统诊断</button>
+                    <div id="diagnostics-result" style="margin-top: 10px; padding: 10px; border-radius: 8px; background: var(--bg); font-size: 12px; display: none;">
+                        <!-- 诊断结果将显示在这里 -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局数据
+        const appData = {
+            balance: 5280.50,
+            cart: [],
+            transactions: [],
+            books: [],
+            products: [
+                { id: 1, name: '无线耳机', price: 199, icon: '🎧' },
+                { id: 2, name: '智能手表', price: 899, icon: '⌚' },
+                { id: 3, name: '移动电源', price: 129, icon: '🔋' },
+                { id: 4, name: '蓝牙音箱', price: 299, icon: '🔊' },
+                { id: 5, name: '平板电脑', price: 3299, icon: '📱' },
+                { id: 6, name: '游戏手柄', price: 399, icon: '🎮' }
+            ],
+            aiResponses: [
+                "好的，我明白了。",
+                "这是一个很好的问题，让我为您解答。",
+                "根据您提供的信息，我建议您可以考虑以下几点：",
+                "您还有其他问题需要帮助吗？",
+                "本模拟器支持AI聊天、购物、记账、世界书等核心功能。",
+                "您可以尝试使用购物功能购买虚拟商品，或者使用记账功能管理您的财务。"
+            ],
+            settings: {
+                darkMode: false,
+                apiConfig: {
+                    type: 'direct',
+                    endpoint: 'https://api.example.com/v1',
+                    key: '',
+                    timeout: 30,
+                    retry: 3,
+                    status: 'disconnected'
+                },
+                ttsConfig: {
+                    provider: 'minimax',
+                    apiKey: '',
+                    model: 'female-1',
+                    speed: 1.0,
+                    pitch: 1.0
+                },
+                imageGenConfig: {
+                    provider: 'noval-ai',
+                    apiKey: '',
+                    resolution: '512x512',
+                    count: 1,
+                    style: 'realistic'
+                },
+                backupConfig: {
+                    service: 'github',
+                    repo: '',
+                    token: '',
+                    frequency: 'manual',
+                    includeChat: true,
+                    includeTransactions: true,
+                    includeBooks: true,
+                    includeSettings: true,
+                    lastBackup: null
+                }
+            }
+        };
+
+        // 初始化数据
+        function initData() {
+            // 初始化交易记录
+            appData.transactions = [
+                { type: 'income', amount: 5000, desc: '工资收入', time: '2024-01-01' },
+                { type: 'expense', amount: 199, desc: '购买耳机', time: '2024-01-02' },
+                { type: 'expense', amount: 299, desc: '购买音箱', time: '2024-01-03' },
+                { type: 'income', amount: 200, desc: '兼职收入', time: '2024-01-04' }
+            ];
+
+            // 初始化世界书
+            appData.books = [
+                { name: '科幻小说集', desc: '收录经典科幻作品', category: '小说', icon: '🚀' },
+                { name: '编程入门', desc: '零基础学习编程', category: '教育', icon: '💻' },
+                { name: '历史百科', desc: '人类文明发展史', category: '历史', icon: '🏛️' },
+                { name: '人工智能导论', desc: 'AI基础与应用', category: '科技', icon: '🤖' }
+            ];
+
+            // 从本地存储加载设置
+            loadSettings();
+
+            updateCartCount();
+            renderTransactions();
+            renderProducts();
+            renderBooks();
+            renderSettings();
+        }
+
+        // 加载设置
+        function loadSettings() {
+            try {
+                const savedSettings = localStorage.getItem('smartphoneSimulatorSettings');
+                if (savedSettings) {
+                    const parsedSettings = JSON.parse(savedSettings);
+                    appData.settings = { ...appData.settings, ...parsedSettings };
+                    
+                    // 应用暗色模式
+                    if (appData.settings.darkMode) {
+                        document.getElementById('phone').classList.add('dark-mode');
+                    }
+                }
+            } catch (error) {
+                console.error('加载设置失败:', error);
+                showNotification('加载设置失败，使用默认设置', 'error');
+            }
+        }
+
+        // 保存设置
+        function saveSettings() {
+            try {
+                localStorage.setItem('smartphoneSimulatorSettings', JSON.stringify(appData.settings));
+                showNotification('设置已保存', 'success');
+            } catch (error) {
+                console.error('保存设置失败:', error);
+                showNotification('保存设置失败', 'error');
+            }
+        }
+
+        // 打开应用
+        function openApp(appName) {
+            // 隐藏所有屏幕
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // 显示目标屏幕
+            const targetScreen = document.getElementById(`${appName}-screen`);
+            if (targetScreen) {
+                targetScreen.classList.add('active');
+                
+                // 如果是设置界面，确保内容是最新的
+                if (appName === 'settings') {
+                    setTimeout(() => {
+                        renderSettings();
+                    }, 50);
+                }
+            }
+            
+            // 更新导航激活状态
+            updateNavActive(appName);
+        }
+
+        function updateNavActive(appName) {
+            // 移除所有导航项的激活状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 激活对应的导航项
+            const targetNav = document.querySelector(`.nav-item[data-nav="${appName}"]`);
+            if (targetNav) {
+                targetNav.classList.add('active');
+            }
+        }
+
+        function goHome() {
+            openApp('home');
+        }
+
+        // 发送AI消息
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            const messagesDiv = document.getElementById('chat-messages');
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // 添加用户消息
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message sent';
+            userMsg.innerHTML = `
+                ${message}
+                <div class="message-time">${time}</div>
+            `;
+            messagesDiv.appendChild(userMsg);
+            
+            input.value = '';
+            input.focus();
+            
+            // AI回复
+            setTimeout(() => {
+                const aiResponse = appData.aiResponses[Math.floor(Math.random() * appData.aiResponses.length)];
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'message received';
+                aiMsg.innerHTML = `
+                    ${aiResponse}
+                    <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                `;
+                messagesDiv.appendChild(aiMsg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 1000);
+            
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function sendMessageOnEnter(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+                event.preventDefault();
+            }
+        }
+
+        // 购物功能
+        function renderProducts() {
+            const productsDiv = document.getElementById('products');
+            productsDiv.innerHTML = '';
+            
+            appData.products.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product';
+                productDiv.innerHTML = `
+                    <div class="product-img">${product.icon}</div>
+                    <div class="product-info">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-price">¥${product.price}</div>
+                        <button class="add-to-cart" onclick="addToCart(${product.id})">加入购物车</button>
+                    </div>
+                `;
+                productsDiv.appendChild(productDiv);
+            });
+        }
+
+        function addToCart(productId) {
+            const product = appData.products.find(p => p.id === productId);
+            if (product) {
+                appData.cart.push(product);
+                updateCartCount();
+                
+                showNotification(`已添加 ${product.name} 到购物车`, 'success');
+            }
+        }
+
+        function updateCartCount() {
+            document.getElementById('cart-count').textContent = appData.cart.length;
+        }
+
+        function viewCart() {
+            const cartItemsDiv = document.getElementById('cart-items');
+            cartItemsDiv.innerHTML = '';
+            
+            if (appData.cart.length === 0) {
+                cartItemsDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">购物车是空的</p>';
+            } else {
+                let total = 0;
+                appData.cart.forEach(item => {
+                    total += item.price;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.display = 'flex';
+                    itemDiv.style.justifyContent = 'space-between';
+                    itemDiv.style.alignItems = 'center';
+                    itemDiv.style.padding = '10px 0';
+                    itemDiv.style.borderBottom = '1px solid var(--border)';
+                    itemDiv.innerHTML = `
+                        <div>
+                            <div style="font-weight: 500;">${item.name}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">${item.icon}</div>
+                        </div>
+                        <div style="color: var(--primary); font-weight: bold;">¥${item.price}</div>
+                    `;
+                    cartItemsDiv.appendChild(itemDiv);
+                });
+                
+                const totalDiv = document.createElement('div');
+                totalDiv.style.display = 'flex';
+                totalDiv.style.justifyContent = 'space-between';
+                totalDiv.style.padding = '15px 0';
+                totalDiv.style.fontWeight = 'bold';
+                totalDiv.style.fontSize = '18px';
+                totalDiv.innerHTML = `
+                    <span>总计：</span>
+                    <span style="color: var(--primary);">¥${total}</span>
+                `;
+                cartItemsDiv.appendChild(totalDiv);
+            }
+            
+            document.getElementById('cart-modal').style.display = 'flex';
+        }
+
+        function checkout() {
+            if (appData.cart.length === 0) {
+                showNotification('购物车是空的', 'warning');
+                return;
+            }
+            
+            const total = appData.cart.reduce((sum, item) => sum + item.price, 0);
+            
+            if (confirm(`确认结算？总金额：¥${total}`)) {
+                appData.cart = [];
+                updateCartCount();
+                closeModal();
+                showNotification('购买成功！', 'success');
+            }
+        }
+
+        // 记账功能
+        function renderTransactions() {
+            const transactionsDiv = document.getElementById('transactions');
+            transactionsDiv.innerHTML = '';
+            
+            appData.transactions.forEach(trans => {
+                const transDiv = document.createElement('div');
+                transDiv.className = 'transaction';
+                transDiv.innerHTML = `
+                    <div class="transaction-info">
+                        <h4>${trans.desc}</h4>
+                        <span>${trans.time}</span>
+                    </div>
+                    <div class="transaction-amount ${trans.type}">
+                        ${trans.type === 'income' ? '+' : '-'}¥${trans.amount}
+                    </div>
+                `;
+                transactionsDiv.appendChild(transDiv);
+            });
+            
+            // 格式化余额显示
+            const formattedBalance = appData.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('balance').textContent = formattedBalance;
+        }
+
+        function addTransaction(type) {
+            document.getElementById('transaction-type').value = type;
+            document.getElementById('transaction-modal').style.display = 'flex';
+            document.getElementById('transaction-amount').focus();
+        }
+
+        function saveTransaction() {
+            const type = document.getElementById('transaction-type').value;
+            const amount = parseFloat(document.getElementById('transaction-amount').value);
+            const desc = document.getElementById('transaction-desc').value.trim();
+            
+            if (!amount || amount <= 0 || !desc) {
+                showNotification('请填写完整的交易信息', 'warning');
+                return;
+            }
+            
+            const transaction = {
+                type,
+                amount,
+                desc,
+                time: new Date().toLocaleDateString()
+            };
+            
+            appData.transactions.unshift(transaction);
+            
+            if (type === 'income') {
+                appData.balance += amount;
+            } else {
+                appData.balance -= amount;
+            }
+            
+            renderTransactions();
+            closeModal();
+            
+            // 清空表单
+            document.getElementById('transaction-amount').value = '';
+            document.getElementById('transaction-desc').value = '';
+            
+            showNotification('交易已添加', 'success');
+        }
+
+        // 世界书功能
+        function renderBooks() {
+            const booksDiv = document.getElementById('books-list');
+            booksDiv.innerHTML = '';
+            
+            appData.books.forEach(book => {
+                const bookDiv = document.createElement('div');
+                bookDiv.className = 'book-item';
+                bookDiv.innerHTML = `
+                    <div class="book-icon">${book.icon}</div>
+                    <div class="book-name">${book.name}</div>
+                    <div class="book-desc">${book.desc}</div>
+                    <div style="margin-top: 8px; font-size: 11px; color: var(--primary);">${book.category}</div>
+                `;
+                booksDiv.appendChild(bookDiv);
+            });
+        }
+
+        function addBook() {
+            document.getElementById('book-name').value = '';
+            document.getElementById('book-desc').value = '';
+            document.getElementById('book-modal').style.display = 'flex';
+            document.getElementById('book-name').focus();
+        }
+
+        function saveBook() {
+            const name = document.getElementById('book-name').value.trim();
+            const desc = document.getElementById('book-desc').value.trim();
+            const category = document.getElementById('book-category').value;
+            
+            if (!name || !desc) {
+                showNotification('请填写完整的书籍信息', 'warning');
+                return;
+            }
+            
+            const icons = ['📚', '📖', '📘', '📙', '📕', '📗', '📓', '📔', '🚀', '💻', '🏛️', '🤖'];
+            const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+            
+            const book = {
+                name,
+                desc,
+                category,
+                icon: randomIcon
+            };
+            
+            appData.books.unshift(book);
+            renderBooks();
+            closeModal();
+            showNotification('书籍已添加', 'success');
+        }
+
+        // 设置功能
+        function renderSettings() {
+            const container = document.getElementById('settings-container');
+            container.innerHTML = '';
+            
+            // 1. 外观设置
+            const appearanceSection = createSettingsSection('外观设置');
+            appearanceSection.appendChild(createToggleSetting(
+                'darkModeToggle',
+                '暗色模式',
+                '启用深色主题',
+                appData.settings.darkMode,
+                (checked) => {
+                    appData.settings.darkMode = checked;
+                    if (checked) {
+                        document.getElementById('phone').classList.add('dark-mode');
+                    } else {
+                        document.getElementById('phone').classList.remove('dark-mode');
+                    }
+                    saveSettings();
+                }
+            ));
+            
+            appearanceSection.appendChild(createSettingsItem(
+                '主题颜色',
+                '选择应用的主色调',
+                '自定义',
+                () => {
+                    showNotification('主题颜色选择功能开发中', 'info');
+                }
+            ));
+            
+            container.appendChild(appearanceSection);
+            
+            // 2. API配置
+            const apiSection = createSettingsSection('API配置');
+            
+            const apiStatus = document.createElement('div');
+            apiStatus.className = 'settings-item';
+            apiStatus.innerHTML = `
+                <div class="settings-item-label">
+                    <div class="settings-item-name">API连接状态</div>
+                    <div class="settings-item-desc">${getApiStatusText()}</div>
+                </div>
+                <div class="settings-item-value">
+                    <span class="api-status ${appData.settings.apiConfig.status}"></span>
+                    ${getApiStatusDisplay()}
+                </div>
+            `;
+            apiSection.appendChild(apiStatus);
+            
+            apiSection.appendChild(createSettingsItem(
+                'API配置',
+                '配置AI服务的API连接',
+                appData.settings.apiConfig.type === 'direct' ? '直连' : 
+                appData.settings.apiConfig.type === 'cli' ? 'CLI代理' : 
+                appData.settings.apiConfig.type === 'reverse-proxy' ? '反向代理' : '自定义',
+                () => {
+                    openApiConfigModal();
+                }
+            ));
+            
+            container.appendChild(apiSection);
+            
+            // 3. TTS语音配置
+            const ttsSection = createSettingsSection('TTS语音配置');
+            ttsSection.appendChild(createSettingsItem(
+                '语音配置',
+                '配置Minimax等TTS语音服务',
+                appData.settings.ttsConfig.provider === 'minimax' ? 'Minimax' : 
+                appData.settings.ttsConfig.provider === 'azure' ? 'Azure' : 
+                appData.settings.ttsConfig.provider === 'google' ? 'Google' : 
+                appData.settings.ttsConfig.provider === 'amazon' ? 'Amazon' : '本地',
+                () => {
+                    openTTSConfigModal();
+                }
+            ));
+            
+            container.appendChild(ttsSection);
+            
+            // 4. AI文生图配置
+            const imageGenSection = createSettingsSection('AI文生图配置');
+            imageGenSection.appendChild(createSettingsItem(
+                '图像生成',
+                '配置Noval AI、Nano Banana等图像生成服务',
+                appData.settings.imageGenConfig.provider === 'noval-ai' ? 'Noval AI' : 
+                appData.settings.imageGenConfig.provider === 'nano-banana' ? 'Nano Banana' : 
+                appData.settings.imageGenConfig.provider === 'stable-diffusion' ? 'Stable Diffusion' : 
+                appData.settings.imageGenConfig.provider === 'dall-e' ? 'DALL-E' : 'Midjourney',
+                () => {
+                    openImageGenConfigModal();
+                }
+            ));
+            
+            container.appendChild(imageGenSection);
+            
+            // 5. 备份功能
+            const backupSection = createSettingsSection('备份功能');
+            
+            const backupStatus = document.createElement('div');
+            backupStatus.className = 'settings-item';
+            const lastBackupText = appData.settings.backupConfig.lastBackup 
+                ? new Date(appData.settings.backupConfig.lastBackup).toLocaleDateString() 
+                : '从未备份';
+            backupStatus.innerHTML = `
+                <div class="settings-item-label">
+                    <div class="settings-item-name">备份状态</div>
+                    <div class="settings-item-desc">上次备份: ${lastBackupText}</div>
+                </div>
+                <div class="settings-item-value">
+                    <span class="backup-status ${appData.settings.backupConfig.lastBackup ? 'success' : 'warning'}">
+                        ${appData.settings.backupConfig.lastBackup ? '已备份' : '未备份'}
+                    </span>
+                </div>
+            `;
+            backupSection.appendChild(backupStatus);
+            
+            backupSection.appendChild(createSettingsItem(
+                '备份配置',
+                '配置GitHub等备份服务',
+                appData.settings.backupConfig.service === 'github' ? 'GitHub' : 
+                appData.settings.backupConfig.service === 'gitlab' ? 'GitLab' : 
+                appData.settings.backupConfig.service === 'dropbox' ? 'Dropbox' : 
+                appData.settings.backupConfig.service === 'google-drive' ? 'Google Drive' : '本地',
+                () => {
+                    openBackupConfigModal();
+                }
+            ));
+            
+            container.appendChild(backupSection);
+            
+            // 6. 数据管理
+            const dataSection = createSettingsSection('数据管理');
+            dataSection.appendChild(createSettingsItem(
+                '导入/导出数据',
+                '备份或恢复应用数据',
+                '管理',
+                () => {
+                    openImportExportModal();
+                }
+            ));
+            
+            dataSection.appendChild(createSettingsItem(
+                '清理缓存',
+                '清除应用缓存和临时数据',
+                '清理',
+                () => {
+                    clearCache();
+                }
+            ));
+            
+            dataSection.appendChild(createSettingsItem(
+                '重置应用',
+                '将应用重置为初始状态',
+                '重置',
+                () => {
+                    resetApplication();
+                }
+            ));
+            
+            container.appendChild(dataSection);
+            
+            // 7. 系统信息
+            const systemSection = createSettingsSection('系统信息');
+            systemSection.appendChild(createSettingsItem(
+                '应用版本',
+                '智能手机模拟器',
+                'v1.0.0'
+            ));
+            
+            systemSection.appendChild(createSettingsItem(
+                '存储使用情况',
+                '计算应用数据占用空间',
+                '检查',
+                () => {
+                    checkStorageUsage();
+                }
+            ));
+            
+            systemSection.appendChild(createSettingsItem(
+                '系统诊断',
+                '检查应用问题和错误',
+                '运行诊断',
+                () => {
+                    runSystemDiagnostics();
+                }
+            ));
+            
+            container.appendChild(systemSection);
+        }
+
+        function createSettingsSection(title) {
+            const section = document.createElement('div');
+            section.className = 'settings-section';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'settings-section-title';
+            titleDiv.textContent = title;
+            
+            section.appendChild(titleDiv);
+            return section;
+        }
+
+        function createSettingsItem(name, desc, value, onClick = null) {
+            const item = document.createElement('div');
+            item.className = 'settings-item';
+            
+            const html = `
+                <div class="settings-item-label">
+                    <div class="settings-item-name">${name}</div>
+                    <div class="settings-item-desc">${desc}</div>
+                </div>
+                <div class="settings-item-value">${value}</div>
+            `;
+            
+            item.innerHTML = html;
+            
+            if (onClick) {
+                item.addEventListener('click', onClick);
+            }
+            
+            return item;
+        }
+
+        function createToggleSetting(id, name, desc, checked, onChange) {
+            const item = document.createElement('div');
+            item.className = 'settings-item';
+            
+            const html = `
+                <div class="settings-item-label">
+                    <div class="settings-item-name">${name}</div>
+                    <div class="settings-item-desc">${desc}</div>
+                </div>
+                <label class="settings-toggle">
+                    <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+                    <span class="settings-toggle-slider"></span>
+                </label>
+            `;
+            
+            item.innerHTML = html;
+            
+            const toggle = item.querySelector('input');
+            toggle.addEventListener('change', (e) => {
+                onChange(e.target.checked);
+            });
+            
+            return item;
+        }
+
+        function getApiStatusText() {
+            const status = appData.settings.apiConfig.status;
+            switch(status) {
+                case 'connected': return '已连接到API服务';
+                case 'disconnected': return '未连接';
+                case 'connecting': return '正在连接...';
+                default: return '未知状态';
+            }
+        }
+
+        function getApiStatusDisplay() {
+            const status = appData.settings.apiConfig.status;
+            switch(status) {
+                case 'connected': return '已连接';
+                case 'disconnected': return '未连接';
+                case 'connecting': return '连接中';
+                default: return '未知';
+            }
+        }
+
+        // API配置功能
+        function openApiConfigModal() {
+            const config = appData.settings.apiConfig;
+            document.getElementById('api-type').value = config.type;
+            document.getElementById('api-endpoint').value = config.endpoint;
+            document.getElementById('api-key').value = config.key;
+            document.getElementById('api-timeout').value = config.timeout;
+            document.getElementById('api-retry').value = config.retry;
+            
+            updateApiStatusDisplay();
+            
+            document.getElementById('api-modal').style.display = 'flex';
+        }
+
+        function updateApiStatusDisplay() {
+            const statusText = document.getElementById('api-status-text');
+            const progressBar = document.getElementById('api-progress');
+            const status = appData.settings.apiConfig.status;
+            
+            switch(status) {
+                case 'connected':
+                    statusText.textContent = '状态：已连接';
+                    statusText.style.color = 'var(--success)';
+                    progressBar.style.width = '100%';
+                    progressBar.style.backgroundColor = 'var(--success)';
+                    break;
+                case 'disconnected':
+                    statusText.textContent = '状态：未连接';
+                    statusText.style.color = 'var(--danger)';
+                    progressBar.style.width = '0%';
+                    progressBar.style.backgroundColor = 'var(--danger)';
+                    break;
+                case 'connecting':
+                    statusText.textContent = '状态：正在连接...';
+                    statusText.style.color = 'var(--warning)';
+                    progressBar.style.width = '50%';
+                    progressBar.style.backgroundColor = 'var(--warning)';
+                    break;
+            }
+        }
+
+        function testApiConnection() {
+            const endpoint = document.getElementById('api-endpoint').value;
+            const key = document.getElementById('api-key').value;
+            
+            if (!endpoint || !key) {
+                showNotification('请填写API端点和密钥', 'warning');
+                return;
+            }
+            
+            // 模拟API连接测试
+            appData.settings.apiConfig.status = 'connecting';
+            updateApiStatusDisplay();
+            
+            showNotification('正在测试API连接...', 'info');
+            
+            setTimeout(() => {
+                // 模拟连接成功（实际应用中这里应该是真实的API调用）
+                const success = Math.random() > 0.3; // 70%成功率
+                
+                if (success) {
+                    appData.settings.apiConfig.status = 'connected';
+                    showNotification('API连接测试成功', 'success');
+                } else {
+                    appData.settings.apiConfig.status = 'disconnected';
+                    showNotification('API连接测试失败，请检查配置', 'error');
+                }
+                
+                updateApiStatusDisplay();
+            }, 1500);
+        }
+
+        function saveApiConfig() {
+            appData.settings.apiConfig = {
+                type: document.getElementById('api-type').value,
+                endpoint: document.getElementById('api-endpoint').value,
+                key: document.getElementById('api-key').value,
+                timeout: parseInt(document.getElementById('api-timeout').value),
+                retry: parseInt(document.getElementById('api-retry').value),
+                status: appData.settings.apiConfig.status
+            };
+            
+            saveSettings();
+            closeModal();
+            showNotification('API配置已保存', 'success');
+            
+            // 更新设置界面
+            renderSettings();
+        }
+
+        // TTS配置功能
+        function openTTSConfigModal() {
+            const config = appData.settings.ttsConfig;
+            document.getElementById('tts-provider').value = config.provider;
+            document.getElementById('tts-api-key').value = config.apiKey;
+            document.getElementById('tts-model').value = config.model;
+            document.getElementById('tts-speed').value = config.speed;
+            document.getElementById('tts-pitch').value = config.pitch;
+            document.getElementById('tts-test-text').value = '你好，这是一个语音测试。';
+            
+            // 更新滑块值显示
+            document.getElementById('tts-speed-value').textContent = config.speed;
+            document.getElementById('tts-pitch-value').textContent = config.pitch;
+            
+            // 添加滑块事件监听
+            document.getElementById('tts-speed').addEventListener('input', (e) => {
+                document.getElementById('tts-speed-value').textContent = e.target.value;
+            });
+            
+            document.getElementById('tts-pitch').addEventListener('input', (e) => {
+                document.getElementById('tts-pitch-value').textContent = e.target.value;
+            });
+            
+            document.getElementById('tts-modal').style.display = 'flex';
+        }
+
+        function testTTS() {
+            const text = document.getElementById('tts-test-text').value;
+            if (!text.trim()) {
+                showNotification('请输入测试文本', 'warning');
+                return;
+            }
+            
+            showNotification('正在生成语音...（演示模式）', 'info');
+            
+            // 模拟TTS生成（实际应用中这里应该是真实的TTS API调用）
+            setTimeout(() => {
+                showNotification('语音生成完成（演示模式）', 'success');
+                
+                // 在演示中，我们无法实际播放音频，但可以显示成功消息
+                // 实际应用中这里应该播放生成的音频
+            }, 1000);
+        }
+
+        function saveTTSConfig() {
+            appData.settings.ttsConfig = {
+                provider: document.getElementById('tts-provider').value,
+                apiKey: document.getElementById('tts-api-key').value,
+                model: document.getElementById('tts-model').value,
+                speed: parseFloat(document.getElementById('tts-speed').value),
+                pitch: parseFloat(document.getElementById('tts-pitch').value)
+            };
+            
+            saveSettings();
+            closeModal();
+            showNotification('TTS配置已保存', 'success');
+            
+            // 更新设置界面
+            renderSettings();
+        }
+
+        // AI文生图配置功能
+        function openImageGenConfigModal() {
+            const config = appData.settings.imageGenConfig;
+            document.getElementById('image-gen-provider').value = config.provider;
+            document.getElementById('image-gen-api-key').value = config.apiKey;
+            document.getElementById('image-gen-resolution').value = config.resolution;
+            document.getElementById('image-gen-count').value = config.count;
+            document.getElementById('image-gen-style').value = config.style;
+            document.getElementById('image-gen-test-prompt').value = '一只可爱的猫在花园里玩耍';
+            
+            document.getElementById('image-gen-modal').style.display = 'flex';
+        }
+
+        function clearImagePreview() {
+            const preview = document.getElementById('image-gen-preview');
+            preview.innerHTML = `
+                <div style="text-align: center; color: var(--text-secondary);">
+                    <div>🖼️</div>
+                    <div>生成的图像将显示在这里</div>
+                </div>
+            `;
+        }
+
+        function testImageGeneration() {
+            const prompt = document.getElementById('image-gen-test-prompt').value;
+            if (!prompt.trim()) {
+                showNotification('请输入测试提示词', 'warning');
+                return;
+            }
+            
+            showNotification('正在生成图像...（演示模式）', 'info');
+            
+            // 模拟图像生成（实际应用中这里应该是真实的图像生成API调用）
+            const preview = document.getElementById('image-gen-preview');
+            preview.innerHTML = '<div class="loading" style="margin: auto;"></div>';
+            
+            setTimeout(() => {
+                // 在演示中，我们显示一个模拟的图像
+                preview.innerHTML = `
+                    <div style="text-align: center; color: var(--text-secondary);">
+                        <div style="font-size: 48px; margin-bottom: 10px;">🖼️</div>
+                        <div>图像生成完成（演示模式）</div>
+                        <div style="font-size: 12px; margin-top: 5px;">提示词: "${prompt}"</div>
+                    </div>
+                `;
+                
+                showNotification('图像生成完成（演示模式）', 'success');
+            }, 2000);
+        }
+
+        function saveImageGenConfig() {
+            appData.settings.imageGenConfig = {
+                provider: document.getElementById('image-gen-provider').value,
+                apiKey: document.getElementById('image-gen-api-key').value,
+                resolution: document.getElementById('image-gen-resolution').value,
+                count: parseInt(document.getElementById('image-gen-count').value),
+                style: document.getElementById('image-gen-style').value
+            };
+            
+            saveSettings();
+            closeModal();
+            showNotification('图像生成配置已保存', 'success');
+            
+            // 更新设置界面
+            renderSettings();
+        }
+
+        // 备份配置功能
+        function openBackupConfigModal() {
+            const config = appData.settings.backupConfig;
+            document.getElementById('backup-service').value = config.service;
+            document.getElementById('backup-repo').value = config.repo;
+            document.getElementById('backup-token').value = config.token;
+            document.getElementById('backup-frequency').value = config.frequency;
+            document.getElementById('backup-chat').checked = config.includeChat;
+            document.getElementById('backup-transactions').checked = config.includeTransactions;
+            document.getElementById('backup-books').checked = config.includeBooks;
+            document.getElementById('backup-settings').checked = config.includeSettings;
+            
+            // 更新备份状态显示
+            updateBackupStatusDisplay();
+            
+            document.getElementById('backup-modal').style.display = 'flex';
+        }
+
+        function updateBackupStatusDisplay() {
+            const statusText = document.getElementById('backup-status-text');
+            const progressBar = document.getElementById('backup-progress');
+            const lastBackup = appData.settings.backupConfig.lastBackup;
+            
+            if (lastBackup) {
+                const date = new Date(lastBackup);
+                statusText.textContent = `上次备份: ${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = 'var(--success)';
+            } else {
+                statusText.textContent = '上次备份: 从未备份';
+                progressBar.style.width = '0%';
+                progressBar.style.backgroundColor = 'var(--warning)';
+            }
+        }
+
+        function createBackup() {
+            const service = document.getElementById('backup-service').value;
+            const repo = document.getElementById('backup-repo').value;
+            const token = document.getElementById('backup-token').value;
+            
+            if (!repo || !token) {
+                showNotification('请填写仓库/文件夹名称和访问令牌', 'warning');
+                return;
+            }
+            
+            showNotification('正在创建备份...（演示模式）', 'info');
+            
+            // 模拟备份过程
+            const progressBar = document.getElementById('backup-progress');
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = `${progress}%`;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    // 保存备份时间
+                    appData.settings.backupConfig.lastBackup = new Date().toISOString();
+                    saveSettings();
+                    
+                    updateBackupStatusDisplay();
+                    showNotification('备份创建成功（演示模式）', 'success');
+                }
+            }, 200);
+        }
+
+        function restoreBackup() {
+            showNotification('正在恢复备份...（演示模式）', 'info');
+            
+            // 模拟恢复过程
+            setTimeout(() => {
+                showNotification('备份恢复成功（演示模式）', 'success');
+            }, 1500);
+        }
+
+        function saveBackupConfig() {
+            appData.settings.backupConfig = {
+                service: document.getElementById('backup-service').value,
+                repo: document.getElementById('backup-repo').value,
+                token: document.getElementById('backup-token').value,
+                frequency: document.getElementById('backup-frequency').value,
+                includeChat: document.getElementById('backup-chat').checked,
+                includeTransactions: document.getElementById('backup-transactions').checked,
+                includeBooks: document.getElementById('backup-books').checked,
+                includeSettings: document.getElementById('backup-settings').checked,
+                lastBackup: appData.settings.backupConfig.lastBackup
+            };
+            
+            saveSettings();
+            closeModal();
+            showNotification('备份配置已保存', 'success');
+            
+            // 更新设置界面
+            renderSettings();
+        }
+
+        // 导入/导出功能
+        function openImportExportModal() {
+            document.getElementById('import-export-modal').style.display = 'flex';
+        }
+
+        function exportData(type) {
+            let data = {};
+            
+            if (type === 'all') {
+                data = {
+                    transactions: appData.transactions,
+                    books: appData.books,
+                    cart: appData.cart,
+                    settings: appData.settings,
+                    balance: appData.balance,
+                    exportDate: new Date().toISOString()
+                };
+            } else if (type === 'settings') {
+                data = {
+                    settings: appData.settings,
+                    exportDate: new Date().toISOString()
+                };
+            }
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `smartphone-simulator-${type}-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showNotification(`数据已导出为${type === 'all' ? '全部数据' : '设置'}`, 'success');
+        }
+
+        function handleImportFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const fileName = document.getElementById('import-file-name');
+            const fileInfo = document.getElementById('import-file-info');
+            
+            fileName.textContent = file.name;
+            fileInfo.style.display = 'block';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (confirm('确定要导入数据吗？这将覆盖当前数据。')) {
+                        importData(data);
+                    }
+                } catch (error) {
+                    showNotification('文件格式错误，请选择有效的JSON文件', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function importData(data) {
+            try {
+                if (data.transactions) appData.transactions = data.transactions;
+                if (data.books) appData.books = data.books;
+                if (data.cart) appData.cart = data.cart;
+                if (data.settings) appData.settings = { ...appData.settings, ...data.settings };
+                if (data.balance) appData.balance = data.balance;
+                
+                // 更新UI
+                updateCartCount();
+                renderTransactions();
+                renderBooks();
+                renderSettings();
+                
+                // 应用暗色模式
+                if (appData.settings.darkMode) {
+                    document.getElementById('phone').classList.add('dark-mode');
+                } else {
+                    document.getElementById('phone').classList.remove('dark-mode');
+                }
+                
+                // 保存到本地存储
+                saveSettings();
+                
+                showNotification('数据导入成功', 'success');
+            } catch (error) {
+                showNotification('数据导入失败: ' + error.message, 'error');
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('确定要清除所有数据吗？此操作不可撤销。')) {
+                // 清除所有数据
+                appData.transactions = [];
+                appData.books = [];
+                appData.cart = [];
+                appData.balance = 0;
+                
+                // 重置设置
+                appData.settings = {
+                    darkMode: false,
+                    apiConfig: {
+                        type: 'direct',
+                        endpoint: 'https://api.example.com/v1',
+                        key: '',
+                        timeout: 30,
+                        retry: 3,
+                        status: 'disconnected'
+                    },
+                    ttsConfig: {
+                        provider: 'minimax',
+                        apiKey: '',
+                        model: 'female-1',
+                        speed: 1.0,
+                        pitch: 1.0
+                    },
+                    imageGenConfig: {
+                        provider: 'noval-ai',
+                        apiKey: '',
+                        resolution: '512x512',
+                        count: 1,
+                        style: 'realistic'
+                    },
+                    backupConfig: {
+                        service: 'github',
+                        repo: '',
+                        token: '',
+                        frequency: 'manual',
+                        includeChat: true,
+                        includeTransactions: true,
+                        includeBooks: true,
+                        includeSettings: true,
+                        lastBackup: null
+                    }
+                };
+                
+                // 更新UI
+                updateCartCount();
+                renderTransactions();
+                renderBooks();
+                renderSettings();
+                
+                // 移除暗色模式
+                document.getElementById('phone').classList.remove('dark-mode');
+                
+                // 清除本地存储
+                localStorage.removeItem('smartphoneSimulatorSettings');
+                
+                showNotification('所有数据已清除', 'success');
+            }
+        }
+
+        function resetToDefault() {
+            if (confirm('确定要重置应用为默认设置吗？此操作将清除所有自定义设置。')) {
+                // 重置设置
+                appData.settings = {
+                    darkMode: false,
+                    apiConfig: {
+                        type: 'direct',
+                        endpoint: 'https://api.example.com/v1',
+                        key: '',
+                        timeout: 30,
+                        retry: 3,
+                        status: 'disconnected'
+                    },
+                    ttsConfig: {
+                        provider: 'minimax',
+                        apiKey: '',
+                        model: 'female-1',
+                        speed: 1.0,
+                        pitch: 1.0
+                    },
+                    imageGenConfig: {
+                        provider: 'noval-ai',
+                        apiKey: '',
+                        resolution: '512x512',
+                        count: 1,
+                        style: 'realistic'
+                    },
+                    backupConfig: {
+                        service: 'github',
+                        repo: '',
+                        token: '',
+                        frequency: 'manual',
+                        includeChat: true,
+                        includeTransactions: true,
+                        includeBooks: true,
+                        includeSettings: true,
+                        lastBackup: null
+                    }
+                };
+                
+                // 更新UI
+                renderSettings();
+                
+                // 移除暗色模式
+                document.getElementById('phone').classList.remove('dark-mode');
+                
+                // 保存设置
+                saveSettings();
+                
+                showNotification('应用已重置为默认设置', 'success');
+            }
+        }
+
+        function runSystemDiagnostics() {
+            const resultDiv = document.getElementById('diagnostics-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading" style="margin: auto;"></div>';
+            
+            setTimeout(() => {
+                const issues = [];
+                const warnings = [];
+                const successes = [];
+                
+                // 检查本地存储
+                try {
+                    localStorage.setItem('test', 'test');
+                    localStorage.removeItem('test');
+                    successes.push('本地存储: 正常');
+                } catch (e) {
+                    issues.push('本地存储: 不可用');
+                }
+                
+                // 检查设置
+                if (appData.settings.apiConfig.endpoint === 'https://api.example.com/v1') {
+                    warnings.push('API配置: 使用默认端点，请配置您的API端点');
+                } else {
+                    successes.push('API配置: 已配置');
+                }
+                
+                // 检查数据
+                if (appData.transactions.length === 0) {
+                    warnings.push('交易数据: 无交易记录');
+                } else {
+                    successes.push(`交易数据: ${appData.transactions.length} 条记录`);
+                }
+                
+                if (appData.books.length === 0) {
+                    warnings.push('书籍数据: 无书籍记录');
+                } else {
+                    successes.push(`书籍数据: ${appData.books.length} 条记录`);
+                }
+                
+                // 生成报告
+                let report = '<div style="font-weight: 500; margin-bottom: 10px;">系统诊断报告</div>';
+                
+                if (issues.length > 0) {
+                    report += '<div style="color: var(--danger); margin-bottom: 8px;">';
+                    report += '<div style="font-weight: 500;">问题:</div>';
+                    issues.forEach(issue => {
+                        report += `<div>• ${issue}</div>`;
+                    });
+                    report += '</div>';
+                }
+                
+                if (warnings.length > 0) {
+                    report += '<div style="color: var(--warning); margin-bottom: 8px;">';
+                    report += '<div style="font-weight: 500;">警告:</div>';
+                    warnings.forEach(warning => {
+                        report += `<div>• ${warning}</div>`;
+                    });
+                    report += '</div>';
+                }
+                
+                if (successes.length > 0) {
+                    report += '<div style="color: var(--success);">';
+                    report += '<div style="font-weight: 500;">正常:</div>';
+                    successes.forEach(success => {
+                        report += `<div>• ${success}</div>`;
+                    });
+                    report += '</div>';
+                }
+                
+                resultDiv.innerHTML = report;
+            }, 1000);
+        }
+
+        // 清理缓存
+        function clearCache() {
+            if (confirm('确定要清理应用缓存吗？')) {
+                // 模拟清理缓存
+                showNotification('正在清理缓存...', 'info');
+                
+                setTimeout(() => {
+                    showNotification('缓存清理完成', 'success');
+                }, 1000);
+            }
+        }
+
+        // 重置应用
+        function resetApplication() {
+            if (confirm('确定要重置应用吗？这将清除所有数据并恢复默认设置。')) {
+                clearAllData();
+                
+                // 添加一些默认数据
+                initData();
+                
+                showNotification('应用已重置', 'success');
+            }
+        }
+
+        // 检查存储使用情况
+        function checkStorageUsage() {
+            try {
+                let totalSize = 0;
+                
+                // 计算交易数据大小
+                totalSize += JSON.stringify(appData.transactions).length;
+                
+                // 计算书籍数据大小
+                totalSize += JSON.stringify(appData.books).length;
+                
+                // 计算购物车数据大小
+                totalSize += JSON.stringify(appData.cart).length;
+                
+                // 计算设置数据大小
+                totalSize += JSON.stringify(appData.settings).length;
+                
+                // 转换为KB
+                const sizeKB = (totalSize / 1024).toFixed(2);
+                
+                showNotification(`存储使用情况: ${sizeKB} KB`, 'info');
+            } catch (error) {
+                showNotification('无法计算存储使用情况', 'error');
+            }
+        }
+
+        // 模态框控制
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            // 移除现有的通知
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            });
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // 3秒后自动移除
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initData();
+            
+            // 为应用图标添加点击事件（事件委托）
+            document.querySelector('.app-grid').addEventListener('click', function(event) {
+                let target = event.target;
+                while (target && !target.classList.contains('app')) {
+                    target = target.parentElement;
+                    if (target && target.classList.contains('app-grid')) {
+                        target = null;
+                        break;
+                    }
+                }
+                
+                if (target && target.dataset.app) {
+                    openApp(target.dataset.app);
+                }
+            });
+            
+            // 为底部导航添加点击事件
+            document.querySelector('.bottom-nav').addEventListener('click', function(event) {
+                let target = event.target;
+                while (target && !target.classList.contains('nav-item')) {
+                    target = target.parentElement;
+                    if (target && target.classList.contains('bottom-nav')) {
+                        target = null;
+                        break;
+                    }
+                }
+                
+                if (target && target.dataset.nav) {
+                    openApp(target.dataset.nav);
+                }
+            });
+            
+            // 更新时间
+            function updateTime() {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                document.querySelector('.time').textContent = timeStr;
+            }
+            
+            updateTime();
+            setInterval(updateTime, 60000);
+            
+            // 电池模拟
+            let battery = 80;
+            const batteryFill = document.querySelector('.battery-fill');
+            const batteryText = document.querySelector('.battery span');
+            
+            function updateBattery() {
+                battery -= 0.1;
+                if (battery < 0) battery = 100; // 模拟充电
+                
+                batteryText.textContent = Math.round(battery) + '%';
+                batteryFill.style.width = battery + '%';
+                batteryFill.style.background = battery > 20 ? 'white' : '#ff3b30';
+            }
+            
+            setInterval(updateBattery, 30000);
+            
+            // 点击外部关闭模态框
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+            });
+            
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
