@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>我的手机</title>
+  <link rel="stylesheet" href="NeoStyle.CSS">
+  <link rel="apple-touch-icon" href="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1758510900942_qdqqd_djw0z2.jpeg">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- iOS PWA 设置 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="我的手机">
+  <meta name="apple-mobile-web-app-orientations" content="portrait">
+  <meta name="format-detection" content="telephone=no, email=no">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- iOS 状态栏样式 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <link rel="icon" type="image/png" href="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1756312261242_qdqqd_g0eriz.jpeg">
+  
+  <!-- 脚本 -->
+  <script src="https://unpkg.com/dexie/dist/dexie.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/StreamSaver.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js" defer></script>
+  <script src="Neoscript.js" defer></script>
+</head>
+<body>
+  <div id="phone-screen">
+    <div id="status-bar">
+      <span id="status-bar-time">12:00</span>
+      <div id="status-bar-battery" class="battery-container">
+        <span class="battery-text">--%</span>
+        <div class="battery-icon">
+          <div class="battery-level"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="notification-bar">
+      <img id="notification-avatar" src="">
+      <div id="notification-content">
+        <div class="name"></div>
+        <div class="message"></div>
+      </div>
+    </div>
+    
+    <div id="home-screen" class="screen active">
+      <div id="main-content-area">
+        <div id="profile-widget">
+          <img id="profile-banner-img" src="https://i.imgur.com/1n3a43H.jpeg" class="editable-image">
+          <div class="profile-avatar-container">
+            <img id="profile-avatar-img" src="https://i.postimg.cc/y8xWzCqj/anime-boy.jpg" class="editable-image">
+          </div>
+          <div class="profile-info">
+            <p id="profile-username" class="editable-text">@我的世界</p>
+            <p id="profile-sub-username" class="editable-text">@myworld</p>
+            <p id="profile-bio" class="editable-text">记录生活的点点滴滴</p>
+            <p id="profile-location" class="editable-text">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5-2.5-1.12 2.5-2.5 2.5z"></path>
+              </svg>
+              <span>我的城市</span>
+            </p>
+          </div>
+        </div>
+        
+        <div id="desktop-layout">
+          <div id="desktop-widget-column">
+            <div class="desktop-widget text-only">
+              <p id="widget-text-1" class="editable-text">记录生活的美好</p>
+            </div>
+            <div class="desktop-widget icon-left">
+              <img id="widget-avatar-1" src="https://i.imgur.com/1n3a43H.jpeg" class="editable-image">
+              <span id="widget-text-2" class="editable-text">保持热爱</span>
+            </div>
+            <div class="desktop-widget icon-right">
+              <span id="widget-text-3" class="editable-text">享受当下</span>
+              <img id="widget-avatar-2" src="https://i.imgur.com/5A0tE9a.jpeg" class="editable-image">
+            </div>
+          </div>
+          
+          <div id="desktop-app-container">
+            <div class="desktop-app-icon" onclick="showScreen('chat-list-screen')">
+              <div class="icon-bg-desktop">
+                <img id="icon-img-qq" src="https://i.postimg.cc/MTC3Tkw8/IMG-6436.jpg" alt="QQ">
+              </div>
+              <span class="label">QQ</span>
+            </div>
+            
+            <div class="desktop-app-icon" onclick="showScreen('world-book-screen')">
+              <div class="icon-bg-desktop">
+                <img id="icon-img-world-book" src="https://i.postimg.cc/HWf1JKzn/IMG-6435.jpg" alt="世界书">
+              </div>
+              <span class="label">世界书</span>
+            </div>
+            
+            <div class="desktop-app-icon" onclick="showScreen('wallpaper-screen')">
+              <div class="icon-bg-desktop">
+                <img id="icon-img-wallpaper" src="https://i.postimg.cc/T1j03pQr/IMG-6440.jpg" alt="外观设置">
+              </div>
+              <span class="label">外观设置</span>
+            </div>
+            
+            <div class="desktop-app-icon" onclick="showScreen('api-settings-screen')">
+              <div class="icon-bg-desktop">
+                <img id="icon-img-api-settings" src="https://i.postimg.cc/MK8rJ8t7/IMG-6438.jpg" alt="设置">
+              </div>
+              <span class="label">设置</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="desktop-dock">
+        <div class="desktop-app-icon" onclick="showScreen('album-screen')">
+          <div class="icon-bg-desktop">
+            <img id="icon-img-album" src="https://i.postimg.cc/Y0T0rKz2/IMG-7303.jpg" alt="相册">
+          </div>
+          <span class="label">相册</span>
+        </div>
+        
+        <div class="desktop-app-icon" onclick="showScreen('music-screen')">
+          <div class="icon-bg-desktop">
+            <img id="icon-img-music" src="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1757748720126_qdqqd_1jt5sv.jpeg" alt="音乐">
+          </div>
+          <span class="label">音乐</span>
+        </div>
+        
+        <div class="desktop-app-icon" onclick="showScreen('notes-screen')">
+          <div class="icon-bg-desktop">
+            <img id="icon-img-notes" src="https://i.postimg.cc/3Rg6tT0W/IMG-7305.jpg" alt="备忘录">
+          </div>
+          <span class="label">备忘录</span>
+        </div>
+        
+        <div class="desktop-app-icon" onclick="showScreen('files-screen')">
+          <div class="icon-bg-desktop">
+            <img id="icon-img-files" src="https://i.postimg.cc/7YjYxYvG/IMG-7306.jpg" alt="文件">
+          </div>
+          <span class="label">文件</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 世界书屏幕 -->
+    <div id="world-book-screen" class="screen">
+      <div class="header">
+        <div class="header-left-actions">
+          <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
+          <span class="action-btn" id="export-world-book-btn" title="导出世界书">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </span>
+        </div>
+        <span>世界书</span>
+        <div class="header-actions">
+          <span class="action-btn" id="manage-world-book-categories-btn" title="管理分类">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </span>
+          <span class="action-btn" id="add-world-book-btn">+</span>
+        </div>
+      </div>
+      
+      <div id="world-book-tabs"></div>
+      <div id="world-book-content-container"></div>
+    </div>
+    
+    <!-- 世界书编辑器 -->
+    <div id="world-book-editor-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" onclick="showScreen('world-book-screen')">‹</span>
+        <span id="world-book-editor-title">编辑世界书</span>
+        <span class="save-btn" id="save-world-book-btn">保存</span>
+      </div>
+      
+      <div class="form-container">
+        <div class="form-group">
+          <label for="world-book-name-input">书名</label>
+          <input type="text" id="world-book-name-input" placeholder="请输入世界书的名称...">
+        </div>
+        
+        <div class="form-group">
+          <label for="world-book-category-select">分类</label>
+          <select id="world-book-category-select"></select>
+        </div>
+        
+        <div class="form-group" style="flex-grow: 1; display: flex; flex-direction: column;">
+          <label>内容条目</label>
+          <div id="world-book-entries-container" style="display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding: 5px; flex-grow: 1;">
+          </div>
+        </div>
+        
+        <button id="add-world-book-entry-btn" class="form-button form-button-secondary">[+] 添加新条目</button>
+      </div>
+    </div>
+    
+    <!-- QQ聊天列表 -->
+    <div id="chat-list-screen" class="screen">
+      <div class="header" id="main-chat-list-header">
+        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
+        <span id="chat-list-title">消息</span>
+        <div class="header-actions">
+          <span class="action-btn" id="add-group-chat-btn" title="创建群聊">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.5 17.5C19.1569 17.5 20.5 16.1569 20.5 14.5C20.5 12.8431 19.1569 11.5 17.5 11.5C15.8431 11.5 14.5 12.8431 14.5 14.5C14.5 16.1569 15.8431 17.5 17.5 17.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 21L19 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.5 11.5C10.1569 11.5 11.5 10.1569 11.5 8.5C11.5 6.84315 10.1569 5.5 8.5 5.5C6.84315 5.5 5.5 6.84315 5.5 8.5C5.5 10.1569 6.84315 11.5 8.5 11.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12.5 14.5H4.5C3.39543 14.5 2.5 15.3954 2.5 16.5V18.5H12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="action-btn" id="add-chat-btn">+</span>
+        </div>
+      </div>
+      
+      <div id="messages-view" class="chat-list-view active">
+        <div id="chat-list"></div>
+      </div>
+      
+      <div id="chat-list-bottom-nav">
+        <div class="nav-item active" data-view="messages-view">
+          <span>消息</span>
+        </div>
+        <div class="nav-item" data-view="contacts-view">
+          <span>联系人</span>
+        </div>
+        <div class="nav-item" data-view="groups-view">
+          <span>群聊</span>
+        </div>
+        <div class="nav-item" data-view="favorites-view">
+          <span>收藏</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 联系人列表 -->
+    <div id="contacts-view" class="chat-list-view">
+      <div class="header">
+        <span class="back-btn" id="contacts-back-btn">‹</span>
+        <span>联系人</span>
+        <div class="header-actions">
+          <span class="action-btn" id="add-contact-btn">+</span>
+        </div>
+      </div>
+      <div id="contacts-list" class="list-container"></div>
+    </div>
+    
+    <!-- 群聊列表 -->
+    <div id="groups-view" class="chat-list-view">
+      <div class="header">
+        <span class="back-btn" id="groups-back-btn">‹</span>
+        <span>群聊</span>
+        <div class="header-actions">
+          <span class="action-btn" id="create-group-btn">+</span>
+        </div>
+      </div>
+      <div id="groups-list" class="list-container"></div>
+    </div>
+    
+    <!-- 收藏列表 -->
+    <div id="favorites-view" class="chat-list-view">
+      <div class="header">
+        <span class="back-btn" id="favorites-back-btn">‹</span>
+        <span>我的收藏</span>
+        <span class="action-btn" id="favorites-edit-btn">编辑</span>
+      </div>
+      <div id="favorites-list" class="list-container"></div>
+    </div>
+    
+    <!-- QQ聊天界面 -->
+    <div id="chat-interface-screen" class="screen">
+      <div class="header">
+        <div class="default-controls">
+          <span class="back-btn" id="back-to-list-btn">‹</span>
+          <div id="chat-header-title-wrapper">
+            <span id="chat-header-title">聊天对象</span>
+            <div id="chat-header-status">
+              <span class="status-dot"></span>
+              <span class="status-text">在线</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <span class="action-btn" id="open-memory-screen-btn" title="长期记忆">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 6L9 9L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 5V19C21 20.1046 20.1046 21 19 21H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="action-btn" id="chat-settings-btn" title="聊天设置">
+              <img src="https://i.postimg.cc/bvPq64cv/CCA834-BA-5-A90-408-D-94-FA-7-EE156-B6-A765.png" alt="设置">
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div id="chat-messages">
+        <div id="typing-indicator">对方正在输入...</div>
+      </div>
+      
+      <div id="chat-input-area">
+        <div id="reply-preview-bar">
+          <div class="reply-preview-content">
+            <div class="sender">回复 xxx:</div>
+            <div class="text">被引用的消息内容...</div>
+          </div>
+          <span id="cancel-reply-btn">×</span>
+        </div>
+        
+        <div id="chat-input-actions-top">
+          <button id="open-sticker-panel-btn" class="chat-action-icon-btn action-button" title="表情面板">+</button>
+          <button id="send-photo-btn" class="chat-action-icon-btn action-button" title="发送照片">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </button>
+          <button id="upload-image-btn" class="chat-action-icon-btn action-button" title="上传图片">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 3.5H3C2.44772 3.5 2 3.94772 2 4.5V19.5C2 20.0523 2.44772 20.5 3 20.5H21C21.5523 20.5 22 20.0523 22 19.5V4.5C22 3.94772 21.5523 3.5 21 3.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M16.5 13.5C17.6046 13.5 18.5 12.6046 18.5 11.5C18.5 10.3954 17.6046 9.5 16.5 9.5C15.3954 9.5 14.5 10.3954 14.5 11.5C14.5 12.6046 15.3954 13.5 16.5 13.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M22 14.5L18 10.5L10.3333 18.5M12.5 16L9 12.5L2 19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </button>
+          <button id="voice-message-btn" class="chat-action-icon-btn action-button" title="发送语音">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <path d="M12 19v4"></path>
+              <path d="M8 23h8"></path>
+            </svg>
+          </button>
+          <button id="video-call-btn" class="chat-action-icon-btn action-button" title="视频通话">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+          </button>
+        </div>
+        
+        <div id="chat-input-main-row">
+          <button id="chat-expand-btn" class="chat-action-icon-btn action-button" title="展开功能">+</button>
+          <textarea id="chat-input" rows="1" placeholder="输入消息..."></textarea>
+          <div id="input-actions-wrapper">
+            <button id="send-btn" class="action-button">发送</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="sticker-panel">
+        <div id="sticker-panel-header">
+          <span class="panel-btn" id="close-sticker-panel-btn">取消</span>
+          <span class="title">我的表情</span>
+          <div style="display: flex; gap: 10px;">
+            <span class="panel-btn" id="manage-stickers-btn">管理</span>
+            <span class="panel-btn" id="upload-sticker-btn">上传</span>
+          </div>
+        </div>
+        <div id="sticker-category-tabs"></div>
+        <div id="sticker-grid"></div>
+      </div>
+      <input type="file" id="sticker-upload-input" accept="image/*" style="display: none;">
+      <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+    </div>
+    
+    <!-- 外观设置屏幕 -->
+    <div id="wallpaper-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
+        <span>外观设置</span>
+        <span style="width: 30px;"></span>
+      </div>
+      
+      <div class="form-container">
+        <label style="font-weight: 500; color: var(--text-secondary);">主屏幕壁纸</label>
+        <div id="wallpaper-preview">点击下方上传</div>
+        <div class="bg-upload-container">
+          <button class="form-button-secondary" onclick="document.getElementById('wallpaper-upload-input').click();">本地上传</button>
+          <button id="upload-wallpaper-url-btn" class="form-button-secondary">网络URL</button>
+          <button id="remove-wallpaper-btn" class="form-button-secondary">移除壁纸</button>
+        </div>
+        <input type="file" id="wallpaper-upload-input" accept="image/*" hidden>
+        
+        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
+        
+        <label style="font-weight: 500; color: var(--text-secondary);">聊天背景</label>
+        <div id="global-bg-preview" class="wallpaper-preview" style="height: 160px; width: 90px;">点击下方上传</div>
+        <div class="bg-upload-container">
+          <button class="form-button-secondary" onclick="document.getElementById('global-bg-input').click()">本地上传</button>
+          <button id="upload-global-bg-url-btn" class="form-button-secondary">网络URL</button>
+          <button id="remove-global-bg-btn" class="form-button-secondary">移除背景</button>
+        </div>
+        <input type="file" id="global-bg-input" accept="image/*" style="display: none;">
+        
+        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
+        
+        <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <label for="theme-toggle-switch" style="margin-bottom: 0;">夜间模式</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="theme-toggle-switch">
+            <span class="slider"></span>
+          </label>
+        </div>
+        
+        <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <label for="status-bar-toggle-switch" style="margin-bottom: 0;">顶部状态栏</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="status-bar-toggle-switch">
+            <span class="slider"></span>
+          </label>
+        </div>
+        
+        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
+        
+        <div style="width:100%; text-align: left; margin-bottom: 15px;">
+          <label style="font-weight: 500; color: var(--text-secondary);">应用图标设置</label>
+        </div>
+        <div id="icon-settings-grid"></div>
+        
+        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
+        
+        <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; width:100%; text-align: left;">外观预设管理</h3>
+        <div class="form-group" style="width:100%;">
+          <label for="appearance-preset-select">选择或切换预设</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <select id="appearance-preset-select" style="flex-grow: 1;"></select>
+            <button id="save-appearance-preset-btn" class="form-button-secondary" style="margin-top: 0; padding: 12px;">保存</button>
+            <button id="delete-appearance-preset-btn" class="form-button-secondary" style="margin-top: 0; padding: 12px; background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2;">删除</button>
+          </div>
+        </div>
+        
+        <hr style="width: 80%; opacity: 0.3; margin: 30px 0;">
+        
+        <div class="form-group" style="width:100%;">
+          <label for="global-css-input">
+            全局美化样式 (CSS)
+            <button id="reset-global-css-btn" type="button" style="background: none; border: 1px solid #ccc; color: #555; font-size: 12px; padding: 2px 8px; border-radius: 5px; cursor: pointer; margin-left: 10px;">重置</button>
+          </label>
+          <textarea id="global-css-input" rows="6" style="width: 100%; margin-top: 8px; font-family: monospace; font-size: 16px; resize: vertical;" placeholder="/* 在此输入自定义CSS */"></textarea>
+        </div>
+        
+        <button class="form-button" id="save-wallpaper-btn" style="margin-top: 30px;">保存所有外观设置</button>
+      </div>
+    </div>
+    
+    <!-- 设置屏幕 -->
+    <div id="api-settings-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
+        <span>设置</span>
+        <span style="width: 30px;"></span>
+      </div>
+      
+      <div class="form-container">
+        <div class="form-group">
+          <label for="language-select">语言 (Language)</label>
+          <select id="language-select">
+            <option value="zh-CN">简体中文</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        
+        <hr style="margin: 30px 0; opacity: 0.3;">
+        
+        <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">API 设置</h3>
+        
+        <div class="form-group">
+          <label for="proxy-url">反代地址</label>
+          <input type="text" id="proxy-url" placeholder="例如: https://api.openai.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="api-key">密钥 (API Key)</label>
+          <input type="password" id="api-key" placeholder="sk-...">
+        </div>
+        
+        <div class="form-group">
+          <label for="model-select">模型</label>
+          <select id="model-select"></select>
+        </div>
+        
+        <button class="form-button" id="fetch-models-btn">拉取模型</button>
+        
+        <hr style="margin: 30px 0; opacity: 0.3;">
+        
+        <div class="form-group">
+          <label for="api-temperature-slider">API 温度 (Temperature) <span id="api-temperature-value">0.8</span></label>
+          <p style="font-size: 12px; font-weight: normal; color: #999; margin-top: 5px;">控制AI回复的随机性和创造性。值越高，回复越随机；值越低，回复越确定。建议范围 0.7-1.0。</p>
+          <input type="range" id="api-temperature-slider" min="0" max="2" step="0.1" value="0.8" style="width: 100%; margin-top: 8px;">
+        </div>
+        
+        <hr style="margin: 30px 0; opacity: 0.3;">
+        
+        <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">存储空间优化</h3>
+        
+        <p id="total-image-size-display" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px; text-align: center;">
+          正在计算本地图片总大小...
+        </p>
+        
+        <button class="form-button form-button-secondary" id="compress-images-btn" style="background-color: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;">
+          一键压缩本地图片
+        </button>
+        
+        <p style="font-size: 12px; color: #8a8a8a; margin-top: 8px; line-height: 1.5;">
+          此功能会将您所有本地上传的图片压缩为JPEG格式，以大幅减小数据体积。
+          <br><strong style="color: #ff3b30;">警告：这是一个有损压缩且不可逆的操作，会轻微降低图片质量。建议操作前先备份数据。</strong>
+        </p>
+        
+        <hr style="margin: 30px 0; opacity: 0.3;">
+        
+        <button class="form-button" id="save-api-settings-btn" style="margin-top: 20px;">保存所有设置</button>
+        <button class="form-button" id="export-data-btn">导出数据</button>
+        <button class="form-button" id="import-btn">导入备份文件</button>
+        <button class="form-button form-button-secondary" id="cleanup-data-btn" style="background-color: #ffebee; color: #c62828; border-color: #ef9a9a; margin-top: 10px;">清理冗余数据</button>
+        <button class="form-button form-button-secondary" id="delete-world-books-btn" style="background-color: #ffebee; color: #c62828; border-color: #ef9a9a; margin-top: 10px;">删除世界书</button>
+        <input id="import-data-input" type="file" accept="application/json" hidden>
+      </div>
+    </div>
+    
+    <!-- 聊天设置 -->
+    <div id="chat-settings-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" onclick="showScreen('chat-interface-screen')">‹</span>
+        <span>聊天设置</span>
+        <span class="save-btn" id="save-chat-settings-btn">保存</span>
+      </div>
+      
+      <div class="form-container">
+        <div class="form-group" id="chat-name-group">
+          <label for="chat-name-input">备注名 / 群名</label>
+          <input type="text" id="chat-name-input">
+        </div>
+        
+        <div class="form-group" id="my-nickname-group">
+          <label for="my-nickname-input">我的昵称</label>
+          <input type="text" id="my-nickname-input">
+        </div>
+        
+        <div class="form-group" id="my-group-nickname-group">
+          <label for="my-group-nickname-input">我的群昵称</label>
+          <input type="text" id="my-group-nickname-input">
+        </div>
+        
+        <div class="form-group" id="ai-persona-group">
+          <label for="ai-persona">对方人设</label>
+          <textarea id="ai-persona" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group" id="ai-avatar-group">
+          <label>对方头像</label>
+          <div class="avatar-upload">
+            <img id="ai-avatar-preview">
+            <button onclick="document.getElementById('ai-avatar-input').click()">上传对方头像</button>
+            <button id="manage-ai-avatar-library-btn">管理头像库</button>
+            <input type="file" id="ai-avatar-input" accept="image/*">
+          </div>
+        </div>
+        
+        <div class="form-group" id="my-persona-group">
+          <label for="my-persona">我的人设</label>
+          <textarea id="my-persona" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group" id="my-avatar-group">
+          <label>我的头像</label>
+          <div class="avatar-upload">
+            <img id="my-avatar-preview">
+            <button onclick="document.getElementById('my-avatar-input').click()">上传我的头像</button>
+            <button id="manage-my-avatar-library-btn">管理头像库</button>
+            <input type="file" id="my-avatar-input" accept="image/*">
+          </div>
+        </div>
+        
+        <div class="form-group" id="group-members-group">
+          <label>群成员人设</label>
+          <div id="group-members-settings"></div>
+          <button id="manage-members-btn" class="form-button form-button-secondary" style="margin-top: 15px;">管理群成员</button>
+        </div>
+        
+        <div class="form-group">
+          <label for="max-memory">短期记忆（上下文）条数</label>
+          <input type="number" id="max-memory" value="10">
+        </div>
+        
+        <div class="form-group">
+          <label for="auto-memory-interval">自动总结间隔（消息条数）</label>
+          <input type="number" id="auto-memory-interval" min="10" value="20" style="width: 80px; text-align: center;">
+          <p style="font-size: 12px; color: #8a8a8a; margin-top: 8px;">建议值 60-150。值越小，总结越频繁，但API费用也越高。</p>
+        </div>
+        
+        <hr style="opacity: 0.3; margin: 20px 0;">
+        
+        <div class="form-group">
+          <label>聊天气泡主题</label>
+          <div class="theme-selector">
+            <label><input type="radio" name="theme-select" value="default" id="theme-default"> 默认</label>
+            <label><input type="radio" name="theme-select" value="pink_blue"> 粉蓝</label>
+            <label><input type="radio" name="theme-select" value="blue_white"> 蓝白</label>
+            <label><input type="radio" name="theme-select" value="purple_yellow"> 紫黄</label>
+            <label><input type="radio" name="theme-select" value="black_white"> 黑白</label>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="font-size-slider">聊天字体大小 <span id="font-size-value">13px</span></label>
+          <input type="range" id="font-size-slider" min="12" max="20" step="1" value="13" style="width: 100%; margin-top: 8px;">
+        </div>
+        
+        <div class="form-group">
+          <label>聊天背景</label>
+          <div class="bg-upload-container">
+            <button type="button" class="form-button-secondary" style="width: auto; padding: 8px 12px; margin-top: 0;" onclick="document.getElementById('bg-input').click()">上传背景图</button>
+            <button type="button" id="remove-bg-btn">移除背景</button>
+          </div>
+          <img id="bg-preview" class="bg-preview-img">
+          <input type="file" id="bg-input" accept="image/*" style="display: none;">
+        </div>
+        
+        <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
+        
+        <button class="form-button form-button-secondary" id="export-single-chat-btn" style="background-color: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;">导出该聊天</button>
+        <button class="form-button form-button-secondary" id="import-single-chat-btn" style="background-color: #fff3e0; color: #ef6c00; border-color: #ffe0b2;">导入该聊天</button>
+        <input type="file" id="import-single-chat-input" accept="application/json" hidden>
+        <button class="form-button form-button-secondary" id="clear-chat-btn">清空聊天记录</button>
+      </div>
+    </div>
+    
+    <!-- 其他功能屏幕 -->
+    <div id="album-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" id="album-back-btn" onclick="showScreen('home-screen')">‹</span>
+        <span>我的相册</span>
+        <span class="action-btn" id="create-album-btn-page">+</span>
+      </div>
+      <div class="list-container">
+        <div id="album-grid-page"></div>
+      </div>
+    </div>
+    
+    <div id="music-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
+        <span>音乐</span>
+        <span style="width: 30px;"></span>
+      </div>
+      <div class="list-container">
+        <div id="music-player">
+          <div id="music-cover">
+            <img src="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1757748720126_qdqqd_1jt5sv.jpeg" alt="专辑封面">
+          </div>
+          <div id="music-info">
+            <div id="music-title">歌曲名称</div>
+            <div id="music-artist">歌手</div>
+          </div>
+          <div id="music-controls">
+            <button id="music-prev">‹</button>
+            <button id="music-play">▶</button>
+            <button id="music-next">›</button>
+          </div>
+        </div>
+        <div id="playlist"></div>
+      </div>
+    </div>
+    
+    <div id="notes-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
+        <span>备忘录</span>
+        <span class="action-btn" id="add-note-btn">+</span>
+      </div>
+      <div class="list-container">
+        <div id="notes-list"></div>
+      </div>
+    </div>
+    
+    <div id="files-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" onclick="showScreen('home-screen')">‹</span>
+        <span>文件管理</span>
+        <span style="width: 30px;"></span>
+      </div>
+      <div class="list-container">
+        <div id="files-list"></div>
+      </div>
+    </div>
+    
+    <!-- 模态框 -->
+    <div id="custom-modal-overlay">
+      <div id="custom-modal">
+        <div class="custom-modal-header" id="custom-modal-title"></div>
+        <div class="custom-modal-body" id="custom-modal-body"></div>
+        <div class="custom-modal-footer">
+          <button id="custom-modal-cancel">取消</button>
+          <button id="custom-modal-confirm" class="confirm-btn">确定</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="import-options-modal" class="modal">
+      <div class="modal-content" style="height: auto;">
+        <div class="modal-header">
+          <span>发现备份文件</span>
+        </div>
+        <div class="modal-body">
+          <p>在此备份文件中找到了以下数据：</p>
+          <ul id="import-preview-list" style="text-align: left; margin-left: 20px; max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 8px;"></ul>
+          <hr style="opacity: 0.2; margin: 20px 0;">
+          <p style="font-weight: bold;">请选择导入方式：</p>
+        </div>
+        <div class="modal-footer" style="flex-direction: column; gap: 10px;">
+          <button class="save btn-danger" id="confirm-full-import-btn" style="width: 100%; background-color: #ff3b30; border-color: #ff3b30;">
+            <strong>完全导入 (覆盖所有数据)</strong>
+            <small style="display: block; font-weight: normal; opacity: 0.8;">将删除本地所有数据，并替换为备份文件中的数据。</small>
+          </button>
+          <button class="save" id="confirm-selective-import-btn" style="width: 100%;">
+            <strong>选择性导入 (合并数据)</strong>
+            <small style="display: block; font-weight: normal; opacity: 0.8;">将备份文件中的数据【添加】到您现有的数据中。</small>
+          </button>
+          <button class="cancel" id="cancel-import-options-btn" style="width: 100%; margin-top: 8px;">取消</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="contact-picker-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" id="cancel-contact-picker-btn">取消</span>
+        <span>选择联系人</span>
+        <span class="save-btn" id="confirm-contact-picker-btn">完成(0)</span>
+      </div>
+      <div class="list-container" id="contact-picker-list"></div>
+    </div>
+    
+    <div id="member-management-screen" class="screen">
+      <div class="header">
+        <span class="back-btn" id="back-from-member-management">‹</span>
+        <span>群成员管理</span>
+        <span style="width: 30px;"></span>
+      </div>
+      <div class="list-container" id="member-management-list"></div>
+      <div id="member-management-actions">
+        <button id="add-existing-contact-btn">从好友列表添加</button>
+        <button id="create-new-member-btn">创建群内新成员</button>
+      </div>
+    </div>
+    
+    <div id="incoming-call-modal" class="modal">
+      <div class="incoming-call-content">
+        <img id="caller-avatar" class="caller-avatar" src="">
+        <div id="caller-name" class="caller-name"></div>
+        <div class="caller-text">邀请你视频通话</div>
+        <div class="incoming-call-actions">
+          <div class="action-button-wrapper">
+            <button id="decline-call-btn" class="call-action-btn decline"></button>
+            <span>拒绝</span>
+          </div>
+          <div class="action-button-wrapper">
+            <button id="accept-call-btn" class="call-action-btn accept"></button>
+            <span>接听</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="video-call-screen" class="screen">
+      <div class="video-call-top-bar">
+        <span id="call-timer">00:00</span>
+      </div>
+      <div class="video-call-avatar-area">
+        <div id="participant-avatars-grid"></div>
+      </div>
+      <div id="video-call-main" class="video-call-main"></div>
+      <div class="video-call-controls">
+        <button id="user-speak-btn" class="control-btn speak-btn"></button>
+        <button id="hang-up-btn" class="control-btn hangup-btn"></button>
+      </div>
+    </div>
+    
+    <div id="world-book-category-manager-modal" class="modal">
+      <div class="modal-content" style="height: 60%;">
+        <div class="modal-header">
+          <span>管理世界书分类</span>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>新建分类</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="text" id="new-category-name-input" placeholder="输入分类名..." style="flex-grow: 1;">
+              <button id="add-new-category-btn" class="form-button" style="width: auto; margin-top: 0; padding: 0 15px;">添加</button>
+            </div>
+          </div>
+          <hr style="opacity: 0.2;">
+          <div id="existing-categories-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="save" id="close-category-manager-btn" style="width: 100%;">完成</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="member-settings-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span>编辑群成员</span>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="member-name-input">名字</label>
+            <input type="text" id="member-name-input">
+          </div>
+          <div class="form-group">
+            <label for="member-persona-input">人设</label>
+            <textarea id="member-persona-input" rows="4"></textarea>
+          </div>
+          <div class="form-group">
+            <label>头像</label>
+            <div class="avatar-upload">
+              <img id="member-avatar-preview">
+              <button onclick="document.getElementById('member-avatar-input').click()">上传头像</button>
+              <input type="file" id="member-avatar-input" accept="image/*">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel" id="cancel-member-settings-btn">取消</button>
+          <button class="save" id="save-member-settings-btn">保存</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="transfer-modal">
+      <div class="transfer-content">
+        <div class="transfer-header">给Ta一个惊喜！</div>
+        <div class="transfer-input-group">
+          <label for="transfer-amount">转账金额</label>
+          <input type="number" id="transfer-amount" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="transfer-input-group">
+          <label for="transfer-note">备注 (可选)</label>
+          <input type="text" id="transfer-note" placeholder="留下你的小心思~" maxlength="20">
+        </div>
+        <div class="transfer-actions">
+          <button id="transfer-cancel-btn">取消</button>
+          <button id="transfer-confirm-btn">确认转账</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="create-post-modal" class="modal">
+      <div class="modal-content" style="height: auto; max-height: 90%;">
+        <div class="modal-header">
+          <span>发布动态</span>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <textarea id="post-public-text" rows="3" placeholder="分享新鲜事..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>可见范围</label>
+            <div id="post-visibility-options" style="display: flex; gap: 15px; margin-bottom: 10px;">
+              <label><input type="radio" name="visibility" value="public" checked> 公开</label>
+              <label><input type="radio" name="visibility" value="friends"> 仅好友</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div id="post-image-preview-container" class="post-image-preview-container">
+              <img id="post-image-preview" src="" alt="图片预览">
+              <button id="post-remove-image-btn">×</button>
+            </div>
+            <div class="post-image-upload-options">
+              <button id="post-upload-local-btn" class="form-button-secondary">本地上传</button>
+              <button id="post-use-url-btn" class="form-button-secondary">网络URL</button>
+              <input type="file" id="post-local-image-input" accept="image/*" hidden>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel" id="cancel-create-post-btn">取消</button>
+          <button class="save" id="confirm-create-post-btn">发布</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="ai-avatar-library-modal" class="modal">
+      <div class="modal-content" style="height: 70%;">
+        <div class="modal-header">
+          <span id="ai-avatar-library-title">头像库</span>
+          <div class="header-actions">
+            <button id="add-ai-avatar-upload-btn" class="action-button">上传</button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding: 15px;">
+          <div id="ai-avatar-library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="save" id="close-ai-avatar-library-btn" style="width: 100%;">关闭</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="my-avatar-library-modal" class="modal">
+      <div class="modal-content" style="height: 70%;">
+        <div class="modal-header">
+          <span id="my-avatar-library-title">我的头像库</span>
+          <div class="header-actions">
+            <button id="add-my-avatar-upload-btn" class="action-button">上传</button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding: 15px;">
+          <div id="my-avatar-library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="save" id="close-my-avatar-library-btn" style="width: 100%;">关闭</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="group-avatar-library-modal" class="modal">
+      <div class="modal-content" style="height: 70%;">
+        <div class="modal-header">
+          <span id="group-avatar-library-title">群头像库</span>
+          <div class="header-actions">
+            <button id="add-group-avatar-upload-btn" class="action-button">上传</button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding: 15px;">
+          <div id="group-avatar-library-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="save" id="close-group-avatar-library-btn" style="width: 100%;">关闭</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 音频播放器 -->
+    <audio id="audio-player" style="display:none;"></audio>
+    <audio id="notification-sound-player" preload="auto"></audio>
+    <audio id="tts-audio-player" style="display:none;"></audio>
+    
+  </div>
+</body>
+</html>
